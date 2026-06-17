@@ -1,0 +1,31 @@
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+*.tmp
+*.temp
+~$*
+*.bak
+
+# 本地压缩包和大文件归档
+*.zip
+*.rar
+*.7z
+
+# 密钥、环境变量和私密配置
+.env
+.env.*
+*.key
+*.pem
+*password*
+*secret*
+*token*
+
+# 构建产物和依赖目录
+node_modules/
+dist/
+build/
+target/
+.cache/
