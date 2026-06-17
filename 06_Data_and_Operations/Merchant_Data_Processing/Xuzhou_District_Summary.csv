@@ -1,0 +1,5 @@
+﻿city_name,city_admin_code,division_name,division_admin_code,status,poi_count,grid_count,api_request_count,error_count,saturated_grid_count,output_file,message,finished_at
+"徐州市","320300","鼓楼区","320302","SUCCESS","3582","208","470","0","0","output\by_district\徐州市\徐州市-鼓楼区.csv","完成","2026-05-12 17:03:53"
+"徐州市","320300","云龙区","320303","SUCCESS","4141","239","532","0","0","output\by_district\徐州市\徐州市-云龙区.csv","完成","2026-05-12 17:09:16"
+"徐州市","320300","贾汪区","320305","SUCCESS","4329","1312","1536","0","0","output\by_district\徐州市\徐州市-贾汪区.csv","完成","2026-05-12 17:22:52"
+"徐州市","320300","泉山区","320311","SUCCESS","4859","221","546","0","0","output\by_district\徐州市\徐州市-泉山区.csv","完成","2026-05-12 17:27:52"

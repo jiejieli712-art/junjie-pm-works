@@ -1,0 +1,2 @@
+﻿source_file,city_name,district_name,total_shops,matched_count,unmatched_count,error_count,api_request_count,output_csv,output_json,finished_at
+"上海市.json","上海市","全市","24265","0","0","566","6112","keyword_output\by_district\上海市\上海市_amap_keyword.csv","keyword_output\by_district\上海市\上海市_amap_keyword.json","2026-05-19 19:31:18"
