@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冷启动 - 身份人数合并优化</title>
+    <style>
+        :root {
+            --primary: #8CC63F; /* 品牌绿 */
+            --primary-light: #E8F5E9;
+            --text-main: #333333;
+            --text-sub: #999999;
+            --bg-gray: #F5F7FA;
+        }
+
+        body {
+            background-color: #7f7f7f;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0;
+        }
+
+        .card {
+            width: 320px;
+            background: #fff;
+            border-radius: 20px;
+            padding: 24px 20px;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        /* 头部 */
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px;
+        }
+        .progress-group { display: flex; align-items: center; gap: 6px; color: var(--primary); font-size: 14px; font-weight: bold; }
+        .title { font-size: 16px; color: var(--primary); font-weight: bold; margin-left: auto; margin-right: auto; transform: translateX(-15px); }
+        .skip-btn {
+            font-size: 12px; color: #fff; background: #A0C060; 
+            padding: 4px 10px; border-radius: 12px; cursor: pointer;
+        }
+
+        /* 板块通用样式 */
+        .section { margin-bottom: 24px; }
+        .sec-title {
+            font-size: 15px; color: #555; font-weight: bold; margin-bottom: 12px;
+            display: flex; align-items: center;
+        }
+        /* 绿色竖条装饰 (还原设计稿) */
+        .sec-title::before {
+            content: ''; display: inline-block; width: 4px; height: 14px;
+            background: var(--primary); margin-right: 8px; border-radius: 2px;
+        }
+
+        /* 身份标签组 */
+        .tag-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .tag {
+            height: 36px; display: flex; align-items: center; justify-content: center;
+            border: 1px solid #E0E0E0; border-radius: 6px; font-size: 13px; color: #666;
+            background: #fff; cursor: pointer; transition: all 0.2s;
+        }
+        .tag.active {
+            background: var(--primary-light); color: var(--primary); border-color: var(--primary); font-weight: bold;
+        }
+        /* 去掉了自定义按钮，布局更整齐 */
+
+        /* 人数步进器 */
+        .stepper-box {
+            background: var(--bg-gray); border-radius: 12px; height: 44px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 10px;
+        }
+        .step-btn {
+            width: 32px; height: 32px; font-size: 20px; color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; user-select: none;
+        }
+        .step-display {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .step-num { font-size: 18px; font-weight: bold; color: var(--text-main); line-height: 1; }
+        .step-label { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
+
+        /* 底部按钮 */
+        .footer { display: flex; gap: 12px; margin-top: 30px; }
+        .btn { flex: 1; height: 44px; border-radius: 22px; font-size: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        /* 上一步 (第一步隐藏/置灰) */
+        .btn-prev {
+            background: #fff; border: 1px solid #E0E0E0; color: #CCC; 
+            /* 关键修改：第一步直接隐藏或者设为不可点 */
+            visibility: hidden; 
+        }
+        
+        .btn-next {
+            background: var(--primary); color: #fff; border: none;
+            box-shadow: 0 4px 10px rgba(140, 198, 63, 0.3);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="header">
+            <div class="progress-group">
+                <span>♡</span> <span>1/4</span>
+            </div>
+            <div class="title">让我们先了解一下你</div>
+            <div class="skip-btn">稍后选</div>
+        </div>
+
+        <div class="section">
+            <div class="sec-title">身份</div>
+            <div class="tag-grid">
+                <div class="tag active" onclick="selectTag(this)">学生党</div>
+                <div class="tag" onclick="selectTag(this)">上班族</div>
+                <div class="tag" onclick="selectTag(this)">养生/长辈</div>
+                <div class="tag" onclick="selectTag(this)">家庭主妇/夫</div>
+                <div class="tag" onclick="selectTag(this)">自由职业</div>
+                <div class="tag" onclick="selectTag(this)">其他</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="sec-title">就餐人数</div>
+            <div class="stepper-box">
+                <div class="step-btn" onclick="updateCount(-1)">−</div>
+                <div class="step-display">
+                    <span class="step-num" id="count-num">1</span>
+                    <span class="step-label" id="count-label">一人食</span>
+                </div>
+                <div class="step-btn" onclick="updateCount(1)">+</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="btn btn-prev">上一步</div>
+            <div class="btn btn-next">下一步</div>
+        </div>
+    </div>
+
+    <script>
+        // 标签单选逻辑
+        function selectTag(el) {
+            const siblings = el.parentElement.children;
+            for (let tag of siblings) tag.classList.remove('active');
+            el.classList.add('active');
+        }
+
+        // 人数逻辑
+        let count = 1;
+        const labels = {
+            1: "一人食",
+            2: "甜蜜双人",
+            3: "小聚",
+            4: "家庭餐",
+            5: "团队聚餐"
+        };
+
+        function updateCount(delta) {
+            const newCount = count + delta;
+            if (newCount < 1) return;
+            if (newCount > 20) return;
+            
+            count = newCount;
+            document.getElementById('count-num').innerText = count;
+            
+            // 动态更新文案
+            let label = labels[count] || "多人聚餐";
+            document.getElementById('count-label').innerText = label;
+        }
+    </script>
+</body>
+</html>

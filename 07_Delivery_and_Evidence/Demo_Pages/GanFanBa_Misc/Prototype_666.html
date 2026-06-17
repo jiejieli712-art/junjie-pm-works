@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 返回参数可视化对比</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        .status-missing { background-color: #ffeaea; color: #d32f2f; font-weight: bold; }
+        .status-empty { background-color: #fff3e0; color: #e65100; font-weight: bold; }
+        .status-ok { color: #2e7d32; }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .badge-missing { background-color: #ef5350; color: white; }
+        .badge-empty { background-color: #ff9800; color: white; }
+        .badge-ok { background-color: #4caf50; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Amap API 响应差异可视化</h1>
+    <p>高亮说明：<span class="badge badge-missing">完全缺失</span> 表示接口2移除了该字段；<span class="badge badge-empty">数据丢失</span> 表示接口2保留了字段名但清空了原有数据。</p>
+    <table>
+        <thead>
+            <tr>
+                <th width="20%">字段名称 (Key)</th>
+                <th width="35%">接口 1 数据 (完整版)</th>
+                <th width="35%">接口 2 数据 (精简版)</th>
+                <th width="10%">状态</th>
+            </tr>
+        </thead>
+        <tbody id="diff-table-body">
+            <!-- 脚本将在这里动态插入行 -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // 接口 1 数据 (提取的第一个 POI)
+    const data1 = {
+        "parent": [], "pcode": "320000", "keytag": "饮品", "type": "体育休闲服务;娱乐场所;酒吧",
+        "photos": [{"title": [], "url": "https://..."}, {"title": [], "url": "https://..."}, {"title": [], "url": "https://..."}],
+        "building": [], "typecode": "080304", "poiweight": [], "citycode": "0516", "adname": "云龙区",
+        "children": [], "featured_reviews_remake": [], "tel": "REDACTED_PHONE", "id": "B0LRTSA5PU",
+        "tag": "网红特调,长岛冰茶,特调鸡尾酒,吨吨桶,单人餐", "entr_location": [], "adcode": "320303",
+        "pname": "江苏省", "biz_type": [], "cityname": "徐州市", "postcode": [], "business_area": [],
+        "childtype": [], "atag": "网红特调,长岛冰茶,特调鸡尾酒,吨吨桶,单人餐", "name": "融生·现调鸡尾酒",
+        "shopid": [], "favorite_num": [], "navi_poiid": [], "distance": [], "importance": [],
+        "biz_ext": {"cost": "22.00", "opentime2": "周一至周日 16:00-02:00", "rating": "3.9", "open_time": "16:00-02:00"},
+        "recommend": "0", "discount_num": "0", "gridcode": "5117310501", "shopinfo": "0", "alias": [],
+        "event": [], "indoor_map": "0", "email": [], "timestamp": "2026-03-05 21:42:27", "website": [],
+        "address": "REDACTED_ADDRESS", "space_num": [], "match": "0",
+        "indoor_data": {"cmsid": [], "truefloor": [], "cpid": [], "floor": []}, "exit_location": [],
+        "location": "117.195009,34.251958", "groupbuy_num": "0", "featured_reviews": []
+    };
+
+    // 接口 2 数据 (提取的第一个 POI)
+    const data2 = {
+        "parent": [], "distance": [], "keytag": "饮品", "importance": [], "biz_ext": [],
+        "type": "体育休闲服务;娱乐场所;酒吧", "photos": [], "building": [], "typecode": "080304",
+        "shopinfo": "0", "poiweight": [], "adname": "云龙区", "featured_reviews_remake": [],
+        "tel": "REDACTED_PHONE", "id": "B0LRTSA5PU", "address": "REDACTED_ADDRESS",
+        "space_num": [], "pname": "江苏省", "biz_type": [], "cityname": "徐州市", "childtype": [],
+        "atag": "网红特调,长岛冰茶,特调鸡尾酒,吨吨桶,单人餐", "name": "融生·现调鸡尾酒",
+        "location": "117.195009,34.251958", "shopid": [], "favorite_num": [], "featured_reviews": []
+    };
+
+    const tbody = document.getElementById('diff-table-body');
+
+    // 辅助函数：将对象格式化为易读的 JSON 字符串
+    function formatVal(val) {
+        if (val === undefined) return "<em>(无此字段)</em>";
+        if (typeof val === 'object' && val !== null) {
+            if (Array.isArray(val) && val.length === 0) return "[]";
+            if (!Array.isArray(val) && Object.keys(val).length === 0) return "{}";
+            return JSON.stringify(val, null, 2).replace(/https:\/\/[^\"]+/g, '"[图片URL省略]"'); // 截断长URL以便展示
+        }
+        return val;
+    }
+
+    // 遍历所有可能的 Key
+    const allKeys = Array.from(new Set([...Object.keys(data1), ...Object.keys(data2)])).sort();
+
+    allKeys.forEach(key => {
+        const val1 = data1[key];
+        const val2 = data2[key];
+        
+        const tr = document.createElement('tr');
+        let statusHtml = '<span class="status-ok">无变化</span>';
+        let rowClass = '';
+
+        // 逻辑判断
+        if (val1 !== undefined && val2 === undefined) {
+            statusHtml = '<span class="badge badge-missing">完全缺失</span>';
+            rowClass = 'status-missing';
+        } else if (JSON.stringify(val1) !== JSON.stringify(val2)) {
+            // 检查是否是从有数据变成了空数组/空对象
+            const isVal1Empty = (Array.isArray(val1) && val1.length === 0) || (typeof val1 === 'object' && val1 !== null && Object.keys(val1).length === 0);
+            const isVal2Empty = (Array.isArray(val2) && val2.length === 0) || (typeof val2 === 'object' && val2 !== null && Object.keys(val2).length === 0);
+            
+            if (!isVal1Empty && isVal2Empty) {
+                statusHtml = '<span class="badge badge-empty">数据丢失</span>';
+                rowClass = 'status-empty';
+            } else {
+                statusHtml = '<span class="badge badge-empty">值改变</span>';
+            }
+        }
+
+        tr.className = rowClass;
+        tr.innerHTML = `
+            <td><strong>${key}</strong></td>
+            <td><pre>${formatVal(val1)}</pre></td>
+            <td><pre>${formatVal(val2)}</pre></td>
+            <td>${statusHtml}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+</script>
+
+</body>
+</html>

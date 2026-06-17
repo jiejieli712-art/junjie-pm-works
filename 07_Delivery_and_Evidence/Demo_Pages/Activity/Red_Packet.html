@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>干饭吧 - 抽取结果页预览</title>
+    <style>
+        /* 全局重置 */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif; }
+        
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- 手机外壳模拟 --- */
+        .phone-mockup {
+            width: 375px;
+            height: 750px;
+            background-color: #fff;
+            border-radius: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 12px solid #333;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 模拟顶部状态栏 */
+        .status-bar {
+            height: 44px;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* 模拟页面背景内容 */
+        .page-content {
+            flex: 1;
+            background: #f8f8f8;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bg-placeholder {
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .trigger-btn {
+            padding: 10px 20px;
+            background: #07c160;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        /* --- 核心弹窗样式 (迁移自小程序 WXSS) --- */
+        .modal-mask {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-mask.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            width: 300px; /* 对应小程序 600rpx */
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
+        .modal-mask.active .modal-content {
+            transform: scale(1);
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* 结果卡片 */
+        .result-card {
+            width: 100%;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .food-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            background-color: #eee;
+            margin: 0 auto 12px auto;
+            /* 模拟图片 */
+            background-image: url('https://images.unsplash.com/photo-1562967960-f55492898b81?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80');
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .food-name {
+            display: block;
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .food-desc {
+            font-size: 13px;
+            color: #999;
+            margin-top: 6px;
+            display: block;
+        }
+
+        /* 营销操作区 */
+        .action-area {
+            width: 100%;
+        }
+
+        /* 倒计时提示 */
+        .countdown-tips {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #FFF0F0;
+            border: 1px solid #FFDCDC;
+            color: #FF4D4F;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .red-packet-icon {
+            margin-right: 4px;
+            font-size: 14px;
+        }
+
+        .timer {
+            font-weight: bold;
+            font-family: monospace;
+            margin: 0 4px;
+        }
+
+        /* 按钮组 */
+        .button-group {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            height: 44px;
+            border-radius: 22px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 15px;
+            line-height: 1.2;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* 次级按钮 */
+        .btn-secondary {
+            background: #F5F7FA;
+            color: #606266;
+            font-weight: 500;
+        }
+        .btn-secondary:active {
+            background: #e6e8eb;
+        }
+
+        /* 主按钮 (CPS) */
+        .btn-primary {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF4D4F 100%);
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(255, 77, 79, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary .sub-text {
+            font-size: 10px;
+            opacity: 0.9;
+            font-weight: normal;
+            margin-top: 2px;
+        }
+
+        /* 呼吸动画 */
+        .pulse-effect {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.4); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 6px rgba(255, 77, 79, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 77, 79, 0); }
+        }
+
+        .close-btn {
+            position: absolute;
+            bottom: -50px;
+            color: #fff;
+            font-size: 28px;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            line-height: 32px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0,0,0,0.2);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="phone-mockup">
+        <div class="status-bar">
+            <span>9:41</span>
+            <span>📶 🔋</span>
+        </div>
+
+        <div class="page-content">
+            <div class="bg-placeholder">转盘转动结束...</div>
+            <button class="trigger-btn" onclick="openModal()">重新抽取</button>
+        </div>
+
+        <div class="modal-mask active" id="resultModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="title">今天吃这个！</div>
+                </div>
+
+                <div class="result-card">
+                    <div class="food-image"></div>
+                    <span class="food-name">隆江猪脚饭</span>
+                    <span class="food-desc">软糯Q弹，男人的浪漫</span>
+                </div>
+
+                <div class="action-area">
+                    <div class="countdown-tips">
+                        <span class="red-packet-icon">🧧</span>
+                        <span>外卖红包 <span class="timer" id="timer">15:00</span> 后失效</span>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="closeModal()">
+                            去店里吃
+                        </button>
+                        
+                        <button class="btn btn-primary pulse-effect" onclick="alert('跳转美团/饿了么小程序...')">
+                            <span>点外卖</span>
+                            <span class="sub-text">领15元红包</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="close-btn" onclick="closeModal()">×</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 简单的倒计时逻辑
+        let timeLeft = 900; // 15分钟
+        const timerElement = document.getElementById('timer');
+        let countdownInterval;
+
+        function startTimer() {
+            clearInterval(countdownInterval);
+            timeLeft = 900; 
+            updateTimerDisplay();
+            
+            countdownInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    return;
+                }
+                timeLeft--;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            timerElement.textContent = `${m}:${s}`;
+        }
+
+        function closeModal() {
+            document.getElementById('resultModal').classList.remove('active');
+        }
+
+        function openModal() {
+            document.getElementById('resultModal').classList.add('active');
+            startTimer(); // 每次打开重置倒计时
+        }
+
+        // 初始化启动
+        startTimer();
+    </script>
+</body>
+</html>

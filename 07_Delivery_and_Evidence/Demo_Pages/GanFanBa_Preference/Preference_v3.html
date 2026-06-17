@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>偏好设置 - V4 最终产品形态</title>
+    <style>
+        :root {
+            --primary: #8CC63F;
+            --bg: #F5F7FA;
+            --card: #FFFFFF;
+            --text: #333333;
+            --sub: #999999;
+            --warn: #FF6B6B;
+            --love: #FF9F43;
+        }
+
+        body {
+            background-color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #fff;
+            border-radius: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            overflow: hidden;
+            position: relative;
+            border: 8px solid #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-bar {
+            height: 44px;
+            padding-top: 40px;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 16px; padding-right: 16px;
+            font-size: 18px; font-weight: bold;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .content-scroll {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background-color: var(--bg);
+            scrollbar-width: none;
+        }
+        .content-scroll::-webkit-scrollbar { display: none; }
+
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .section-title { font-size: 16px; font-weight: bold; color: var(--text); }
+        
+        /* 刷新按钮样式 */
+        .refresh-btn { 
+            font-size: 13px; color: var(--primary); 
+            cursor: pointer; display: flex; align-items: center; 
+            background: rgba(140, 198, 63, 0.1);
+            padding: 4px 10px; border-radius: 12px;
+        }
+        .refresh-btn:active { opacity: 0.7; }
+
+        /* 标签组 */
+        .tag-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag {
+            padding: 6px 14px;
+            background: #F0F2F5;
+            color: #666;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            user-select: none;
+            transition: all 0.2s;
+        }
+        .tag.active {
+            background: rgba(140, 198, 63, 0.15);
+            color: #5c8527;
+            border-color: var(--primary);
+            font-weight: bold;
+        }
+        /* 禁忌标签选中态 */
+        .tag.block-active {
+            background: rgba(255, 107, 107, 0.1);
+            color: var(--warn);
+            border-color: var(--warn);
+            font-weight: bold;
+        }
+
+        /* 红黑榜 Chips */
+        .chips-scroll-area {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            min-height: 40px; /* 占位防止跳动 */
+        }
+        .chip {
+            padding: 5px 12px;
+            background: #fff; border: 1px solid #eee;
+            border-radius: 6px; font-size: 12px; color: #666;
+            cursor: pointer;
+        }
+        .add-more-btn {
+            padding: 5px 12px;
+            background: #F0F2F5; border: 1px dashed #ccc;
+            border-radius: 6px; font-size: 12px; color: #999;
+            cursor: pointer;
+        }
+
+        /* 已选红黑榜 */
+        .selected-list { 
+            margin-top: 12px; padding-top: 12px; 
+            border-top: 1px solid #f5f5f5; 
+            display: flex; flex-wrap: wrap; gap: 8px;
+        }
+        .selected-badge {
+            font-size: 12px; padding: 4px 8px; border-radius: 4px;
+            display: flex; align-items: center;
+        }
+        .badge-love { background: #FFF3E0; color: #E67E22; border: 1px solid #FFCC80; }
+        .badge-hate { background: #F5F5F5; color: #999; text-decoration: line-through; border: 1px solid #ddd; }
+        .close-x { margin-left: 6px; cursor: pointer; font-weight: bold; }
+
+        /* 底部 */
+        .bottom-bar {
+            background: #fff; padding: 12px 24px; padding-bottom: 34px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .save-btn {
+            width: 100%; height: 48px;
+            background: var(--primary); color: #fff;
+            border: none; border-radius: 25px;
+            font-size: 16px; font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* 弹窗通用样式 */
+        .modal-mask {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 50;
+            display: none; justify-content: center; align-items: flex-end; /* 底部弹出 */
+        }
+        .modal-body {
+            background: #fff; width: 100%; border-radius: 20px 20px 0 0;
+            padding: 20px; animation: slideUp 0.3s;
+            max-height: 70%; display: flex; flex-direction: column;
+        }
+        .modal-header { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 15px; position: relative; }
+        .modal-close { position: absolute; right: 0; top: 0; color: #999; font-weight: normal; cursor: pointer; }
+        
+        .search-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search-input { 
+            flex: 1; height: 36px; background: #F5F7FA; border: none; 
+            border-radius: 6px; padding: 0 10px; font-size: 14px; 
+        }
+        
+        /* 态度选择按钮 */
+        .attitude-grid { display: flex; gap: 15px; margin-top: 10px; }
+        .att-btn { 
+            flex: 1; height: 44px; border-radius: 8px; 
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+        }
+
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame">
+        <div class="nav-bar">
+            <span>‹</span>
+            <span>偏好设置</span>
+            <span></span>
+        </div>
+
+        <div class="content-scroll">
+            
+            <div class="card">
+                <div class="section-header">
+                    <span class="section-title">基础档案</span>
+                </div>
+                <div class="tag-group">
+                    <div class="tag active" onclick="toggleTag(this)">上班族</div>
+                    <div class="tag" onclick="toggleTag(this)">学生党</div>
+                    <div class="tag" onclick="toggleTag(this)">健身达人</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <span class="section-title">口味雷达</span>
+                    <div class="refresh-btn" onclick="refreshTags('taste')">🔄 换一批</div>
+                </div>
+                <div class="tag-group" id="taste-container">
+                    </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <span class="section-title">饮食红黑榜</span>
+                    <div class="refresh-btn" onclick="refreshTags('food')">🔄 换一批</div>
+                </div>
+                
+                <div class="chips-scroll-area" id="food-pool">
+                    </div>
+
+                <div class="selected-list" id="selected-preferences">
+                    <div class="selected-badge badge-hate" onclick="removeEl(this)">🚫 香菜 <span class="close-x">×</span></div>
+                </div>
+            </div>
+
+            <div class="card" style="border: 1px solid rgba(255, 107, 107, 0.2);">
+                <div class="section-header">
+                    <span class="section-title" style="color:var(--warn)">⚠️ 饮食禁忌</span>
+                    <div class="refresh-btn" style="color:var(--warn); background:rgba(255,107,107,0.05)" onclick="openSearchModal('allergy')">
+                        + 添加更多
+                    </div>
+                </div>
+                <div class="tag-group" id="allergy-container">
+                    <div class="tag" onclick="toggleBlock(this)">海鲜</div>
+                    <div class="tag" onclick="toggleBlock(this)">花生</div>
+                    <div class="tag" onclick="toggleBlock(this)">牛奶</div>
+                    <div class="tag" onclick="toggleBlock(this)">坚果</div>
+                </div>
+                <div style="font-size:12px; color:#999; margin-top:10px; line-height:1.4">
+                    * 选中即代表绝对不吃，系统推荐将严格过滤此类菜品。
+                </div>
+            </div>
+
+            <div style="height: 50px;"></div>
+        </div>
+
+        <div class="bottom-bar">
+            <button class="save-btn" onclick="alert('保存成功！数据已更新至用户画像。')">保存设置</button>
+        </div>
+
+        <div class="modal-mask" id="action-modal">
+            <div class="modal-body">
+                <div class="modal-header">
+                    <span id="modal-title">标题</span>
+                    <span class="modal-close" onclick="closeModal()">✕</span>
+                </div>
+
+                <div id="modal-search-content" style="display:none">
+                    <div class="search-row">
+                        <input type="text" class="search-input" id="search-input" placeholder="输入名称，如：芒果">
+                        <button onclick="handleSearchAdd()" style="border:none; background:var(--primary); color:#fff; border-radius:6px; padding:0 15px;">添加</button>
+                    </div>
+                    <div style="font-size:12px; color:#999">热门禁忌：</div>
+                    <div class="tag-group" style="margin-top:10px">
+                        <div class="tag" onclick="directAddBlock('芒果')">芒果</div>
+                        <div class="tag" onclick="directAddBlock('鸡蛋')">鸡蛋</div>
+                        <div class="tag" onclick="directAddBlock('酒精')">酒精</div>
+                        <div class="tag" onclick="directAddBlock('羊肉')">羊肉</div>
+                    </div>
+                </div>
+
+                <div id="modal-attitude-content" style="display:none">
+                    <div style="text-align:center; color:#666; margin-bottom:10px">
+                        添加到我的偏好列表
+                    </div>
+                    <div class="attitude-grid">
+                        <div class="att-btn" style="background:#FFF3E0; color:#E67E22" onclick="confirmPreference('love')">❤️ 特别爱吃</div>
+                        <div class="att-btn" style="background:#F5F5F5; color:#666" onclick="confirmPreference('hate')">🚫 坚决不吃</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 模拟数据库数据 ---
+        const DB = {
+            taste: [
+                "无辣不欢", "清淡", "甜食控", "面食脑袋", "肉食动物", "川湘菜", 
+                "减脂餐", "日式料理", "韩国料理", "素食主义", "高蛋白", "低碳水",
+                "重口味", "酸辣", "东北菜", "粤菜", "小龙虾", "火锅控", "米粉"
+            ],
+            food: [
+                "葱", "蒜", "姜", "香菜", "羊肉", "内脏", "折耳根", "胡萝卜", 
+                "青椒", "苦瓜", "芹菜", "韭菜", "肥肉", "猪肝", "皮蛋", "榴莲",
+                "西兰花", "秋葵", "鱼腥草"
+            ]
+        };
+
+        // 状态管理
+        const state = {
+            selectedTaste: ["无辣不欢"], // 已选口味
+            currentTastePage: 0,
+            currentFoodPage: 0,
+            tempTargetFood: '' // 当前正在操作的红黑榜食物
+        };
+
+        // --- 核心逻辑：智能刷新 ---
+        function renderTasteArea() {
+            const container = document.getElementById('taste-container');
+            container.innerHTML = '';
+
+            // 1. 先渲染用户已选的 (固定在前面)
+            state.selectedTaste.forEach(tag => {
+                const el = createTag(tag, true);
+                container.appendChild(el);
+            });
+
+            // 2. 补充未选的 (从数据库切片)
+            // 每次展示 8 个位置，减去已选的个数
+            const slots = 10 - state.selectedTaste.length;
+            if (slots > 0) {
+                let count = 0;
+                let index = state.currentTastePage;
+                
+                // 循环查找未选中的标签
+                while (count < slots) {
+                    const tag = DB.taste[index % DB.taste.length];
+                    if (!state.selectedTaste.includes(tag)) {
+                        const el = createTag(tag, false);
+                        container.appendChild(el);
+                        count++;
+                    }
+                    index++;
+                }
+                // 更新下次开始的索引
+                state.currentTastePage = index; 
+            }
+        }
+
+        // --- 红黑榜刷新逻辑 ---
+        function renderFoodPool() {
+            const container = document.getElementById('food-pool');
+            container.innerHTML = '';
+            
+            // 每次展示 6 个
+            let start = state.currentFoodPage;
+            for(let i=0; i<6; i++) {
+                const tag = DB.food[(start + i) % DB.food.length];
+                const chip = document.createElement('div');
+                chip.className = 'chip';
+                chip.innerText = tag;
+                chip.onclick = () => openAttitudeModal(tag);
+                container.appendChild(chip);
+            }
+            
+            // 兜底按钮
+            const moreBtn = document.createElement('div');
+            moreBtn.className = 'add-more-btn';
+            moreBtn.innerHTML = '+ 自定义';
+            moreBtn.onclick = () => openSearchModal('food_custom');
+            container.appendChild(moreBtn);
+        }
+
+        // --- DOM 辅助 ---
+        function createTag(text, isActive) {
+            const div = document.createElement('div');
+            div.className = isActive ? 'tag active' : 'tag';
+            div.innerText = text;
+            div.onclick = () => {
+                if(isActive) {
+                    // 取消选中
+                    state.selectedTaste = state.selectedTaste.filter(t => t !== text);
+                } else {
+                    // 选中
+                    state.selectedTaste.push(text);
+                }
+                renderTasteArea(); // 重新渲染以更新顺序
+            };
+            return div;
+        }
+
+        // 刷新控制器
+        function refreshTags(type) {
+            if(type === 'taste') {
+                // 仅增加索引，重新渲染逻辑会跳过已选
+                state.currentTastePage += 5; 
+                renderTasteArea();
+            } else if (type === 'food') {
+                state.currentFoodPage += 6;
+                renderFoodPool();
+            }
+        }
+
+        // --- 禁忌切换 ---
+        function toggleBlock(el) {
+            el.classList.toggle('block-active');
+        }
+
+        // --- 弹窗逻辑 ---
+        const modal = document.getElementById('action-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const searchContent = document.getElementById('modal-search-content');
+        const attitudeContent = document.getElementById('modal-attitude-content');
+
+        // 打开态度选择 (红黑榜)
+        function openAttitudeModal(foodName) {
+            state.tempTargetFood = foodName;
+            modalTitle.innerText = `评价: ${foodName}`;
+            searchContent.style.display = 'none';
+            attitudeContent.style.display = 'block';
+            modal.style.display = 'flex';
+        }
+
+        // 打开搜索 (禁忌或红黑榜兜底)
+        function openSearchModal(type) {
+            if(type === 'allergy') {
+                modalTitle.innerText = '添加饮食禁忌';
+            } else {
+                modalTitle.innerText = '搜索菜品/食材';
+                state.tempTargetFood = 'CUSTOM_SEARCH'; // 标记
+            }
+            searchContent.style.display = 'block';
+            attitudeContent.style.display = 'none';
+            modal.style.display = 'flex';
+            document.getElementById('search-input').focus();
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        // 确认偏好 (爱/恨)
+        function confirmPreference(type) {
+            const name = state.tempTargetFood;
+            const container = document.getElementById('selected-preferences');
+            
+            // 移除旧的
+            Array.from(container.children).forEach(el => {
+                if(el.innerText.includes(name)) el.remove();
+            });
+
+            const div = document.createElement('div');
+            div.className = `selected-badge ${type==='love'?'badge-love':'badge-hate'}`;
+            div.innerHTML = `${type==='love'?'❤️':'🚫'} ${name} <span class="close-x" onclick="removeEl(this)">×</span>`;
+            
+            container.appendChild(div);
+            closeModal();
+        }
+
+        // 处理手动搜索添加
+        function handleSearchAdd() {
+            const val = document.getElementById('search-input').value.trim();
+            if(!val) return;
+
+            if (modalTitle.innerText.includes('禁忌')) {
+                // 添加到禁忌列表
+                const container = document.getElementById('allergy-container');
+                const div = document.createElement('div');
+                div.className = 'tag block-active'; // 默认选中
+                div.innerText = val;
+                div.onclick = function(){ this.classList.toggle('block-active') };
+                container.appendChild(div);
+                closeModal();
+            } else {
+                // 如果是红黑榜搜索，转到态度选择
+                closeModal();
+                setTimeout(() => openAttitudeModal(val), 200);
+            }
+            document.getElementById('search-input').value = '';
+        }
+
+        function directAddBlock(name) {
+            document.getElementById('search-input').value = name;
+            handleSearchAdd();
+        }
+
+        function removeEl(el) {
+            el.parentElement.remove();
+        }
+        
+        // 简单开关
+        function toggleTag(el) {
+            el.classList.toggle('active');
+        }
+
+        // 初始化
+        renderTasteArea();
+        renderFoodPool();
+
+    </script>
+</body>
+</html>

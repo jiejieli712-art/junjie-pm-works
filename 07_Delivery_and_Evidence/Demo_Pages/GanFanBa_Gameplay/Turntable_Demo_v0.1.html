@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V0.1 无感刷新测试 Demo</title>
+    <style>
+        :root {
+            --wheel-size: 360px;
+            --plate-size: 80px;
+            --bg-color: #fcefdc;
+            --wood-dark: #5d4037;
+            --wood-light: #8d6e63;
+            --plate-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'PingFang SC', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#e0c39e 2px, transparent 0);
+            background-size: 20px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            color: #333;
+        }
+
+        h2 { margin-bottom: 5px; color: var(--wood-dark); }
+        p.desc { font-size: 14px; color: #666; margin-bottom: 30px; }
+
+        /* 舞台 */
+        .game-stage {
+            position: relative;
+            width: var(--wheel-size);
+            height: var(--wheel-size);
+            padding-bottom: 40px; 
+        }
+
+        /* 转盘底座 - 去掉 CSS Transition，完全由 JS控制 */
+        .turntable-base {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: repeating-radial-gradient(
+                circle at center,
+                var(--wood-light) 0,
+                var(--wood-light) 10px,
+                var(--wood-dark) 11px,
+                var(--wood-dark) 12px
+            );
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.3);
+            position: relative;
+            /* 关键：取消CSS动画过渡，避免与JS帧冲突 */
+            will-change: transform; 
+        }
+
+        /* 盘子容器 */
+        .plate-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: var(--plate-size);
+            height: var(--plate-size);
+            margin-top: calc(var(--plate-size) / -2);
+            margin-left: calc(var(--plate-size) / -2);
+        }
+
+        /* 盘子内容 */
+        .plate-content {
+            width: 100%;
+            height: 100%;
+            background: var(--plate-bg);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            border: 2px solid #ddd;
+            transition: none; /* 实时计算，不需要过渡 */
+        }
+
+        .plate-content .emoji { font-size: 32px; margin-bottom: 2px; }
+        .plate-content .name { font-size: 11px; font-weight: bold; color: #444; }
+
+        /* 调试模式：当盘子处于“刷新区间”时变个边框色，证明逻辑在运行 (正式版可去掉) */
+        .plate-content.refreshing {
+            border-color: #4CAF50; 
+            background-color: #e8f5e9;
+        }
+
+        /* 遮罩/出餐口 */
+        .service-window {
+            position: absolute;
+            width: 130px; /* 足够宽以覆盖盘子 */
+            height: 120px;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: repeating-linear-gradient(135deg, #d32f2f, #d32f2f 15px, #ffffff 15px, #ffffff 30px);
+            border-bottom: 6px solid #b71c1c;
+            border-radius: 12px 12px 4px 4px;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .window-sign {
+            background: #fff;
+            padding: 4px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #d32f2f;
+            border: 2px solid #d32f2f;
+            border-radius: 4px;
+        }
+
+        /* 状态监控面板 */
+        .monitor {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        /* 按钮 */
+        .controls { margin-top: 40px; display: flex; gap: 20px; }
+        button {
+            padding: 10px 25px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+            background: #333;
+            color: #fff;
+        }
+        button:active { transform: scale(0.95); }
+        button.stop { background: #d32f2f; }
+
+    </style>
+</head>
+<body>
+
+    <div class="monitor" id="monitor">状态: 待机<br>刷新计数: 0</div>
+
+    <h2>V0.1 无感刷新测试</h2>
+    <p class="desc">匀速转动 | 遮罩下实时替换 | 全程无卡顿</p>
+
+    <div class="game-stage">
+        <div class="turntable-base" id="wheel"></div>
+        
+        <div class="service-window">
+            <div class="window-sign">出餐口</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="toggleSpin()" id="toggleBtn">启动传送带</button>
+    </div>
+
+    <script>
+        // --- 1. 配置参数 ---
+        const CONFIG = {
+            totalPlates: 9,
+            radius: 140, // 半径
+            speed: 0.4,  // 转速 (度/帧) - 调小这个数字会更慢
+            refreshZone: { start: 170, end: 190 } // 遮罩覆盖的角度区间 (底部是180)
+        };
+
+        const MENU_DB = [
+            { name: "红烧肉", icon: "🍖" }, { name: "清蒸鱼", icon: "🐟" },
+            { name: "麻婆豆腐", icon: "🥘" }, { name: "烤鸭", icon: "🦆" },
+            { name: "佛跳墙", icon: "🍲" }, { name: "小龙虾", icon: "🦞" },
+            { name: "大闸蟹", icon: "🦀" }, { name: "东坡肉", icon: "🥓" },
+            { name: "狮子头", icon: "🧆" }, { name: "口水鸡", icon: "🐓" },
+            { name: "回锅肉", icon: "🥩" }, { name: "大米饭", icon: "🍚" },
+            { name: "炸酱面", icon: "🍜" }, { name: "扬州炒饭", icon: "🍛" },
+            { name: "生煎包", icon: "🥟" }, { name: "汉堡包", icon: "🍔" },
+            { name: "披萨", icon: "🍕" }, { name: "意面", icon: "🍝" }
+        ];
+
+        // --- 2. 全局变量 ---
+        let isSpinning = false;
+        let currentRotation = 0;
+        let animationFrameId = null;
+        let refreshCount = 0;
+        
+        // 存储每个盘子的状态对象
+        // { element: DOM, contentEl: DOM, baseAngle: number, needsReset: boolean }
+        let plates = [];
+
+        const wheelEl = document.getElementById('wheel');
+        const monitorEl = document.getElementById('monitor');
+        const btnEl = document.getElementById('toggleBtn');
+
+        // --- 3. 初始化 ---
+        function init() {
+            const angleStep = 360 / CONFIG.totalPlates;
+
+            for (let i = 0; i < CONFIG.totalPlates; i++) {
+                // DOM 创建
+                const container = document.createElement('div');
+                container.className = 'plate-container';
+                // 初始位置
+                container.style.transform = `rotate(${i * angleStep}deg) translate(0, -${CONFIG.radius}px)`;
+
+                const content = document.createElement('div');
+                content.className = 'plate-content';
+                const dish = getRandomDish();
+                updatePlateContent(content, dish);
+
+                // 摩天轮修正：初始反向旋转
+                content.style.transform = `rotate(-${i * angleStep}deg)`;
+
+                container.appendChild(content);
+                wheelEl.appendChild(container);
+
+                // 存入状态数组
+                plates.push({
+                    id: i,
+                    element: container,
+                    contentEl: content,
+                    baseAngle: i * angleStep, // 它的原始物理角度 (0, 40, 80...)
+                    isRefreshedThisRound: false // 防止在同一个遮罩区间内重复刷新
+                });
+            }
+        }
+
+        // --- 4. 核心物理引擎 (每一帧调用) ---
+        function loop() {
+            if (!isSpinning) return;
+
+            // 1. 增加旋转角度
+            currentRotation = (currentRotation + CONFIG.speed);
+            
+            // 2. 应用旋转到转盘底座
+            wheelEl.style.transform = `rotate(${currentRotation}deg)`;
+
+            // 3. 遍历所有盘子进行逻辑处理
+            plates.forEach(plate => {
+                // --- A. 摩天轮反向修正 ---
+                // 盘子内容需要反转：-(当前转盘总角度 + 盘子初始角度)
+                const totalAngle = currentRotation + plate.baseAngle;
+                plate.contentEl.style.transform = `rotate(${-totalAngle}deg)`;
+
+                // --- B. 碰撞检测与刷新逻辑 ---
+                // 计算该盘子当前在视口坐标系中的角度 (归一化到 0-360)
+                let normalizedAngle = totalAngle % 360; 
+                if (normalizedAngle < 0) normalizedAngle += 360;
+
+                // 判断是否在遮罩区间内 (底部是180度)
+                const inZone = normalizedAngle >= CONFIG.refreshZone.start && 
+                               normalizedAngle <= CONFIG.refreshZone.end;
+
+                if (inZone) {
+                    // 如果进入了区间，且这一轮还没刷新过
+                    if (!plate.isRefreshedThisRound) {
+                        doRefresh(plate);
+                        plate.isRefreshedThisRound = true; // 标记已刷新
+                        
+                        // 视觉调试：变成绿色说明正在后台刷新
+                        // plate.contentEl.classList.add('refreshing'); 
+                    }
+                } else {
+                    // 离开区间，重置标记，等待下一圈
+                    plate.isRefreshedThisRound = false;
+                    // plate.contentEl.classList.remove('refreshing');
+                }
+            });
+
+            // 4. 继续下一帧
+            animationFrameId = requestAnimationFrame(loop);
+        }
+
+        // --- 5. 刷新动作 ---
+        function doRefresh(plate) {
+            // 模拟从后台获取新菜
+            const newDish = getRandomDish();
+            
+            // 这里的更新是完全无感的，因为盘子正好被遮罩挡住
+            updatePlateContent(plate.contentEl, newDish);
+            
+            // 更新统计
+            refreshCount++;
+            monitorEl.innerHTML = `状态: 运行中<br>角度: ${Math.floor(currentRotation)}°<br>已隐式刷新: ${refreshCount} 次`;
+            console.log(`盘子 #${plate.id} 在遮罩下更新为: ${newDish.name}`);
+        }
+
+        function updatePlateContent(dom, dish) {
+            dom.innerHTML = `
+                <div class="emoji">${dish.icon}</div>
+                <div class="name">${dish.name}</div>
+            `;
+        }
+
+        function getRandomDish() {
+            return MENU_DB[Math.floor(Math.random() * MENU_DB.length)];
+        }
+
+        // --- 6. 控制逻辑 ---
+        function toggleSpin() {
+            if (isSpinning) {
+                isSpinning = false;
+                cancelAnimationFrame(animationFrameId);
+                btnEl.innerText = "启动传送带";
+                btnEl.classList.remove('stop');
+                monitorEl.innerHTML = monitorEl.innerHTML.replace("运行中", "已暂停");
+            } else {
+                isSpinning = true;
+                loop();
+                btnEl.innerText = "停止";
+                btnEl.classList.add('stop');
+            }
+        }
+
+        // 启动初始化
+        init();
+
+    </script>
+</body>
+</html>

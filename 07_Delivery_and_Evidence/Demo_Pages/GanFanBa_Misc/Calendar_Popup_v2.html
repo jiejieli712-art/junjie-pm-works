@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>干饭吧 - 智能日历组件演示</title>
+    <style>
+        :root {
+            --primary: #8CC63F;       /* 品牌绿 */
+            --primary-light: #EBF5DC; /* 浅绿背景 */
+            --danger: #FF6B6B;        /* 休息日/节假日红 */
+            --bg-gray: #F9F9F9;       /* 休息日背景灰 */
+            --text-main: #333333;
+            --text-sub: #999999;
+            --disabled: #EEEEEE;
+            --disabled-text: #CCCCCC;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", Helvetica, Arial, sans-serif;
+            background: #e0e0e0;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 20px; gap: 20px;
+        }
+
+        h2 { font-size: 16px; color: #333; margin: 0 0 10px 0; }
+        .desc { font-size: 12px; color: #666; margin-bottom: 15px; }
+
+        /* 手机外壳 */
+        .phone-frame {
+            width: 375px; background: #fff; border-radius: 20px;
+            overflow: hidden; padding-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* 弹窗模拟容器 */
+        .calendar-modal {
+            padding: 20px 16px;
+        }
+
+        /* --- 日历通用样式 --- */
+        .cal-header {
+            text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 15px;
+            position: relative;
+        }
+        .cal-header .month-nav { font-size: 14px; color: #999; position: absolute; right: 0; top: 2px; }
+
+        /* 星期栏 */
+        .week-row {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            margin-bottom: 10px;
+        }
+        .week-cell {
+            text-align: center; font-size: 12px; color: var(--text-main);
+            height: 30px; line-height: 30px;
+        }
+        .week-cell.is-rest { color: var(--danger); }
+
+        /* 日期网格 */
+        .days-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            row-gap: 8px; column-gap: 4px;
+        }
+
+        /* 原子组件：日期格 */
+        .day-cell {
+            height: 56px;
+            border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; position: relative;
+            transition: all 0.2s;
+            background: #fff; /* 默认工作日白底 */
+            border: 1px solid transparent;
+        }
+
+        /* 内容样式 */
+        .solar { font-size: 16px; font-weight: bold; color: var(--text-main); line-height: 1.2; }
+        .lunar { font-size: 10px; color: var(--text-sub); margin-top: 2px; line-height: 1; }
+        .mark { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; background: transparent; border-radius: 50%; }
+
+        /* --- 状态 1: 休息日 (周末/节假日) --- */
+        .day-cell.type-rest {
+            background-color: var(--bg-gray);
+        }
+        .day-cell.type-rest .solar, 
+        .day-cell.type-rest .lunar {
+            color: var(--danger); /* 红色警示 */
+        }
+
+        /* --- 状态 2: 选中态 (优先级最高) --- */
+        .day-cell.selected {
+            background-color: var(--primary) !important;
+            box-shadow: 0 4px 10px rgba(140, 198, 63, 0.3);
+        }
+        .day-cell.selected .solar,
+        .day-cell.selected .lunar {
+            color: #fff !important;
+        }
+        .day-cell.selected::after {
+            content: attr(data-tip); /* 开始/结束 提示 */
+            position: absolute; bottom: -16px; 
+            font-size: 10px; color: var(--primary); font-weight: bold;
+            white-space: nowrap;
+        }
+
+        /* --- 状态 3: 区间内 --- */
+        .day-cell.in-range {
+            background-color: var(--primary-light) !important;
+        }
+        .day-cell.in-range .solar,
+        .day-cell.in-range .lunar {
+            color: var(--primary) !important; /* 区间内文字变绿 */
+        }
+        /* 区间内的休息日，保持红色文字以示区别，但背景浅绿 */
+        .day-cell.in-range.type-rest .solar,
+        .day-cell.in-range.type-rest .lunar {
+            color: var(--danger) !important;
+            font-weight: bold;
+        }
+
+        /* --- 状态 4: 不可选 (置灰) --- */
+        .day-cell.disabled {
+            background-color: #fff;
+            opacity: 0.4;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+        .day-cell.disabled .solar,
+        .day-cell.disabled .lunar {
+            color: var(--disabled-text);
+        }
+
+        /* 今日标记 */
+        .day-cell.is-today .mark { background: var(--primary); }
+        .day-cell.selected .mark { background: #fff; }
+
+        /* 分割线 */
+        .divider { height: 1px; background: #eee; margin: 30px 16px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame">
+        <div class="calendar-modal">
+            <h2>场景 1: 单日选择 (预订餐)</h2>
+            <div class="desc">需求：点击任意日期，高亮选中。休息日标红。</div>
+            
+            <div class="cal-header">2025年 12月</div>
+            <div class="week-row">
+                <div class="week-cell is-rest">日</div>
+                <div class="week-cell">一</div>
+                <div class="week-cell">二</div>
+                <div class="week-cell">三</div>
+                <div class="week-cell">四</div>
+                <div class="week-cell">五</div>
+                <div class="week-cell is-rest">六</div>
+            </div>
+            <div class="days-grid" id="grid-single"></div>
+        </div>
+    </div>
+
+    <div class="phone-frame">
+        <div class="calendar-modal">
+            <h2>场景 2: 区间选择 (创建计划)</h2>
+            <div class="desc">需求：点击开始和结束，中间自动连线。休息日背景变灰但文字标红。</div>
+            
+            <div class="cal-header">2025年 12月</div>
+            <div style="display:flex; gap:10px; margin-bottom:15px; justify-content:center;">
+                <div style="padding:4px 12px; background:var(--primary); color:#fff; border-radius:4px; font-size:12px;">一周</div>
+                <div style="padding:4px 12px; background:#f5f5f5; color:#666; border-radius:4px; font-size:12px;">一个月</div>
+            </div>
+
+            <div class="week-row">
+                <div class="week-cell is-rest">日</div>
+                <div class="week-cell">一</div>
+                <div class="week-cell">二</div>
+                <div class="week-cell">三</div>
+                <div class="week-cell">四</div>
+                <div class="week-cell">五</div>
+                <div class="week-cell is-rest">六</div>
+            </div>
+            <div class="days-grid" id="grid-range"></div>
+        </div>
+    </div>
+
+    <div class="phone-frame">
+        <div class="calendar-modal">
+            <h2>场景 3: 单日调整 (受限选择)</h2>
+            <div class="desc">需求：只能选择场景2中已选范围内的日期，范围外置灰不可点。</div>
+            
+            <div class="cal-header">2025年 12月</div>
+            <div class="week-row">
+                <div class="week-cell is-rest">日</div>
+                <div class="week-cell">一</div>
+                <div class="week-cell">二</div>
+                <div class="week-cell">三</div>
+                <div class="week-cell">四</div>
+                <div class="week-cell">五</div>
+                <div class="week-cell is-rest">六</div>
+            </div>
+            <div class="days-grid" id="grid-limit"></div>
+            <div style="text-align:center; font-size:12px; color:var(--primary); margin-top:10px;">
+                * 仅可调整已订餐区间内的日期 (12.03 - 12.12)
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 模拟数据 (2025年12月) ---
+        // 1号是周一。
+        const MOCK_DATA = [
+            { day: 30, lunar: '初十', month: 'prev' }, // 上月占位
+            { day: 1, lunar: '十一', type: 'work' },
+            { day: 2, lunar: '十二', type: 'work' },
+            { day: 3, lunar: '十三', type: 'work' },
+            { day: 4, lunar: '十四', type: 'work' },
+            { day: 5, lunar: '十五', type: 'work' },
+            { day: 6, lunar: '十六', type: 'rest' }, // 周六
+            { day: 7, lunar: '大雪', type: 'rest' }, // 周日
+            { day: 8, lunar: '十八', type: 'work' },
+            { day: 9, lunar: '十九', type: 'work' },
+            { day: 10, lunar: '二十', type: 'work' },
+            { day: 11, lunar: '廿一', type: 'work' },
+            { day: 12, lunar: '双十二', type: 'work', holiday: true }, // 模拟节气/节日
+            { day: 13, lunar: '廿三', type: 'rest' },
+            { day: 14, lunar: '廿四', type: 'rest' },
+            { day: 15, lunar: '廿五', type: 'work' },
+            { day: 16, lunar: '廿六', type: 'work' },
+            { day: 17, lunar: '廿七', type: 'work' },
+            { day: 18, lunar: '廿八', type: 'work' },
+            { day: 19, lunar: '廿九', type: 'work' },
+            { day: 20, lunar: '三十', type: 'rest' },
+            { day: 21, lunar: '冬月', type: 'rest' },
+            { day: 22, lunar: '冬至', type: 'work', holiday: true },
+            { day: 23, lunar: '初三', type: 'work' },
+            { day: 24, lunar: '平安夜', type: 'work', holiday: true },
+            { day: 25, lunar: '圣诞节', type: 'work', holiday: true },
+            { day: 26, lunar: '初六', type: 'work' },
+            { day: 27, lunar: '初七', type: 'rest' },
+            { day: 28, lunar: '初八', type: 'rest' },
+            { day: 29, lunar: '初九', type: 'work' },
+            { day: 30, lunar: '初十', type: 'work' },
+            { day: 31, lunar: '十一', type: 'work' }
+        ];
+
+        // --- 2. 渲染引擎 ---
+        function renderCalendar(containerId, mode, config = {}) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            MOCK_DATA.forEach((item, index) => {
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                
+                // 上月日期置灰
+                if (item.month === 'prev') {
+                    cell.classList.add('disabled');
+                    cell.innerHTML = `<span class="solar">${item.day}</span>`;
+                    container.appendChild(cell);
+                    return;
+                }
+
+                // 基础样式：休息日/工作日
+                if (item.type === 'rest') cell.classList.add('type-rest');
+                
+                // 内容填充
+                let html = `<span class="solar">${item.day}</span>`;
+                html += `<span class="lunar">${item.lunar}</span>`;
+                
+                // 今日标记 (模拟12月3日是今天)
+                if (item.day === 3) {
+                    cell.classList.add('is-today');
+                    html += `<span class="mark"></span>`;
+                }
+                cell.innerHTML = html;
+
+                // --- 逻辑分支 ---
+                
+                // 场景 1: 单选 (Single)
+                // 逻辑: 只有选中和未选中
+                if (mode === 'single') {
+                    if (config.selected === item.day) {
+                        cell.classList.add('selected');
+                    }
+                    cell.onclick = () => {
+                        // 简单的重绘模拟
+                        config.selected = item.day;
+                        renderCalendar(containerId, mode, config);
+                    };
+                }
+
+                // 场景 2: 区间 (Range)
+                // 逻辑: 开始、结束、中间
+                if (mode === 'range') {
+                    const start = config.start;
+                    const end = config.end;
+                    
+                    if (item.day === start) {
+                        cell.classList.add('selected');
+                        cell.setAttribute('data-tip', '开始');
+                    } else if (item.day === end) {
+                        cell.classList.add('selected');
+                        cell.setAttribute('data-tip', '结束');
+                    } else if (item.day > start && item.day < end) {
+                        cell.classList.add('in-range');
+                    }
+                    
+                    // 模拟交互：点两下
+                    cell.onclick = () => {
+                        if (!config.step || config.step === 2) {
+                            config.start = item.day;
+                            config.end = null;
+                            config.step = 1;
+                        } else {
+                            if(item.day >= config.start) config.end = item.day;
+                            else { config.end = config.start; config.start = item.day; }
+                            config.step = 2;
+                        }
+                        renderCalendar(containerId, mode, config);
+                    }
+                }
+
+                // 场景 3: 受限 (Limit)
+                // 逻辑: 只能选范围内的
+                if (mode === 'limit') {
+                    const validStart = config.validStart;
+                    const validEnd = config.validEnd;
+
+                    if (item.day < validStart || item.day > validEnd) {
+                        cell.classList.add('disabled');
+                    } else {
+                        // 范围内可选
+                        if (config.selected === item.day) {
+                            cell.classList.add('selected');
+                        }
+                        cell.onclick = () => {
+                            config.selected = item.day;
+                            renderCalendar(containerId, mode, config);
+                        }
+                    }
+                }
+
+                container.appendChild(cell);
+            });
+        }
+
+        // --- 3. 初始化 ---
+        
+        // 场景1: 默认选中 5号
+        renderCalendar('grid-single', 'single', { selected: 5 });
+
+        // 场景2: 默认选中 3号到12号
+        renderCalendar('grid-range', 'range', { start: 3, end: 12, step: 2 });
+
+        // 场景3: 范围限定在 3-12号，默认选中 8号
+        renderCalendar('grid-limit', 'limit', { validStart: 3, validEnd: 12, selected: 8 });
+
+    </script>
+</body>
+</html>

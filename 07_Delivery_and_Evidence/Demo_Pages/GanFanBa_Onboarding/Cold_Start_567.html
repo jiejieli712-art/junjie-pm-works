@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 5 - 极简避雷</title>
+    <style>
+        :root { --primary: #8CC63F; --warn: #FF6B6B; --text: #333; --bg-gray: #F9F9F9; }
+        body { background: #7f7f7f; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; display: flex; justify-content: center; align-items: flex-end; min-height: 100vh; margin: 0; padding-bottom: 20px; }
+        
+        .card { width: 340px; background: #fff; border-radius: 20px; padding: 24px 20px; position: relative; box-shadow: 0 -10px 40px rgba(0,0,0,0.1); }
+        
+        /* 极简头部 */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .title-group { display: flex; flex-direction: column; }
+        .title { font-size: 18px; font-weight: bold; color: var(--text); }
+        .subtitle { font-size: 12px; color: #999; margin-top: 4px; }
+        .step-tag { font-size: 12px; color: #fff; background: var(--primary); padding: 2px 8px; border-radius: 10px; }
+
+        /* 标签组容器 */
+        .group-title { font-size: 13px; font-weight: bold; margin: 15px 0 10px; display: flex; align-items: center; }
+        .group-title.warn { color: var(--warn); }
+        .group-title::before { content: ''; display: inline-block; width: 4px; height: 12px; background: #ddd; margin-right: 6px; border-radius: 2px; }
+        .group-title.warn::before { background: var(--warn); }
+
+        .tags-container { display: flex; flex-wrap: wrap; gap: 10px; }
+
+        /* 标签样式 */
+        .tag {
+            padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+            background: var(--bg-gray); color: #555; transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        /* 选中态：红色删除线风格 */
+        .tag.active {
+            background: #FFF0F0; color: var(--warn); border-color: var(--warn);
+            font-weight: bold; text-decoration: line-through;
+        }
+
+        /* 底部按钮 */
+        .btn-group { display: flex; gap: 12px; margin-top: 30px; }
+        .btn { height: 44px; border-radius: 22px; border: none; font-weight: bold; font-size: 15px; cursor: pointer; }
+        
+        /* “我都吃”按钮：强调便捷 */
+        .btn-skip { flex: 1; background: #fff; border: 1px solid #eee; color: #666; }
+        /* “完成”按钮 */
+        .btn-done { flex: 2; background: var(--primary); color: #fff; box-shadow: 0 4px 15px rgba(140, 198, 63, 0.4); }
+
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <div class="title-group">
+                <span class="title">最后一步：饮食避雷</span>
+                <span class="subtitle">点选您 <b style="color:#333">绝对不吃</b> 的食物</span>
+            </div>
+            <span class="step-tag">5/5</span>
+        </div>
+        
+        <div class="group-title">大家常屏蔽</div>
+        <div class="tags-container">
+            <div class="tag" onclick="toggle(this)">香菜</div>
+            <div class="tag" onclick="toggle(this)">葱</div>
+            <div class="tag" onclick="toggle(this)">蒜</div>
+            <div class="tag" onclick="toggle(this)">姜</div>
+            <div class="tag" onclick="toggle(this)">肥肉</div>
+            <div class="tag" onclick="toggle(this)">内脏</div>
+            <div class="tag" onclick="toggle(this)">折耳根</div>
+            <div class="tag" onclick="toggle(this)">羊肉</div>
+        </div>
+
+        <div class="group-title warn">过敏与禁忌</div>
+        <div class="tags-container">
+            <div class="tag" onclick="toggle(this)">海鲜</div>
+            <div class="tag" onclick="toggle(this)">花生</div>
+            <div class="tag" onclick="toggle(this)">芒果</div>
+            <div class="tag" onclick="toggle(this)">乳制品</div>
+            <div class="tag" onclick="toggle(this)">酒精</div>
+            <div class="tag" onclick="toggle(this)">高糖</div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-skip" onclick="finish(true)">😋 我都吃</button>
+            <button class="btn btn-done" onclick="finish(false)">完成，去干饭</button>
+        </div>
+    </div>
+
+    <script>
+        function toggle(el) {
+            el.classList.toggle('active');
+        }
+
+        function finish(isSkip) {
+            if(isSkip) {
+                alert("无忌口，画像构建完成！\nD3系数 = 0");
+            } else {
+                const selected = document.querySelectorAll('.tag.active');
+                const values = Array.from(selected).map(el => el.innerText);
+                alert(`画像构建完成！\n已屏蔽：${values.join(',')}`);
+            }
+        }
+    </script>
+</body>
+</html>

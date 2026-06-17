@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 4 - 滑动选菜</title>
+    <style>
+        :root {
+            --primary: #8CC63F;
+            --love: #FF6B6B;
+            --nope: #E0E0E0;
+            --text-main: #333333;
+            --bg-gray: #F7F8FA;
+        }
+
+        body {
+            background-color: #7f7f7f;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", Helvetica, Arial, sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; overflow: hidden;
+        }
+
+        .modal-card {
+            width: 340px; height: 600px;
+            background: #fff; border-radius: 20px;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 头部 */
+        .header {
+            padding: 20px 20px 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 10; background: #fff;
+        }
+        .title { font-size: 18px; font-weight: bold; color: var(--text-main); }
+        .progress-pill {
+            background: #F5F5F5; padding: 4px 10px; border-radius: 12px;
+            font-size: 12px; font-weight: bold; color: #999;
+        }
+        .progress-pill span { color: var(--primary); }
+
+        /* --- 卡片堆叠区域 --- */
+        .card-stack {
+            flex: 1; position: relative;
+            display: flex; justify-content: center; align-items: center;
+            perspective: 1000px;
+        }
+
+        .swipe-card {
+            position: absolute;
+            width: 280px; height: 380px;
+            background: #fff; border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transform-origin: 50% 100%;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            cursor: grab; border: 1px solid #eee;
+        }
+
+        /* 图片 */
+        .card-img {
+            width: 100%; height: 280px; object-fit: cover;
+            pointer-events: none; /* 防止拖拽图片 */
+        }
+        
+        /* 标签印章 (滑动时显示) */
+        .stamp {
+            position: absolute; top: 20px; 
+            padding: 4px 10px; border: 3px solid; border-radius: 8px;
+            font-size: 24px; font-weight: 900; text-transform: uppercase;
+            opacity: 0; transition: opacity 0.2s; z-index: 5;
+        }
+        .stamp-like { right: 20px; color: var(--primary); border-color: var(--primary); transform: rotate(15deg); }
+        .stamp-nope { left: 20px; color: var(--love); border-color: var(--love); transform: rotate(-15deg); }
+
+        /* 卡片信息 */
+        .card-info {
+            padding: 16px; text-align: center;
+        }
+        .dish-name { font-size: 20px; font-weight: bold; margin-bottom: 8px; color: #333; }
+        .dish-desc { font-size: 13px; color: #999; }
+        
+        /* --- 底部控制栏 --- */
+        .controls {
+            height: 100px; display: flex; justify-content: center; align-items: center; gap: 30px;
+            padding-bottom: 20px; z-index: 10; background: #fff;
+        }
+
+        .action-btn {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: #fff; border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            font-size: 24px; cursor: pointer;
+            transition: transform 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-nope { color: #FF6B6B; border: 1px solid #FFEBEE; }
+        .btn-like { color: #fff; background: var(--primary); box-shadow: 0 8px 20px rgba(140, 198, 63, 0.4); }
+        
+        .action-btn:active { transform: scale(0.9); }
+
+        /* 动画类 */
+        .swiping-left { animation: flyOutLeft 0.5s forwards; }
+        .swiping-right { animation: flyOutRight 0.5s forwards; }
+
+        @keyframes flyOutLeft {
+            to { transform: translate(-400px, 50px) rotate(-30deg); opacity: 0; }
+        }
+        @keyframes flyOutRight {
+            to { transform: translate(400px, 50px) rotate(30deg); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="modal-card">
+        <div class="header">
+            <div class="title">你的心动美食</div>
+            <div class="progress-pill"><span id="count">0</span>/5 喜欢</div>
+        </div>
+
+        <div class="card-stack" id="stack">
+            </div>
+
+        <div class="controls">
+            <button class="action-btn btn-nope" onclick="swipe('left')">✕</button>
+            <button class="action-btn btn-like" onclick="swipe('right')">❤️</button>
+        </div>
+    </div>
+
+    <script>
+        const dishes = [
+            { name: "麻辣小龙虾", desc: "川湘 · 重辣 · 夜宵必点", img: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=500&q=80" },
+            { name: "清蒸海鲈鱼", desc: "粤菜 · 鲜美 · 高蛋白", img: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=500&q=80" },
+            { name: "轻食考伯沙拉", desc: "减脂 · 低卡 · 健康", img: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80" },
+            { name: "广式蜜汁叉烧", desc: "甜口 · 肉食 · 下饭", img: "https://images.unsplash.com/photo-1623653387945-2fd25214f8fc?auto=format&fit=crop&w=500&q=80" },
+            { name: "美式牛肉汉堡", desc: "快餐 · 能量 · 满足", img: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=500&q=80" }
+        ];
+
+        let currentIndex = 0;
+        let likedCount = 0;
+        const stack = document.getElementById('stack');
+
+        function initCards() {
+            // 倒序渲染，保证第一张在最上面
+            for (let i = dishes.length - 1; i >= 0; i--) {
+                const card = document.createElement('div');
+                card.className = 'swipe-card';
+                card.style.zIndex = i;
+                
+                // 堆叠视觉差
+                if (i > 0) {
+                    card.style.transform = `scale(${1 - i * 0.05}) translateY(${i * 10}px)`;
+                    card.style.opacity = 1 - i * 0.2;
+                }
+
+                card.innerHTML = `
+                    <div class="stamp stamp-like">LIKE</div>
+                    <div class="stamp stamp-nope">NOPE</div>
+                    <img src="${dishes[i].img}" class="card-img">
+                    <div class="card-info">
+                        <div class="dish-name">${dishes[i].name}</div>
+                        <div class="dish-desc">${dishes[i].desc}</div>
+                    </div>
+                `;
+                stack.appendChild(card);
+            }
+        }
+
+        function swipe(direction) {
+            const cards = document.querySelectorAll('.swipe-card');
+            if (currentIndex >= cards.length) {
+                alert("选完啦！生成画像中...");
+                return;
+            }
+
+            // 获取当前最上面的卡片
+            // 因为是倒序插入，所以最上面的是 DOM 里的最后一个（如果按 z-index 看）
+            // 这里我们简单处理，直接取 visually top card
+            // 实际上由于我是倒序插的，dishes[0] 在最下面？不对，z-index 0 是 dishes[0]...
+            // 修正逻辑：我们动态操作 DOM，每次移除最后一个 child
+            
+            const currentCard = stack.lastElementChild;
+            if (!currentCard) return;
+
+            // 1. 动画飞出
+            if (direction === 'left') {
+                currentCard.classList.add('swiping-left');
+                // 显示 NOPE 章
+                currentCard.querySelector('.stamp-nope').style.opacity = 1;
+            } else {
+                currentCard.classList.add('swiping-right');
+                // 显示 LIKE 章
+                currentCard.querySelector('.stamp-like').style.opacity = 1;
+                likedCount++;
+                document.getElementById('count').innerText = likedCount;
+                
+                // 震动反馈
+                if (navigator.vibrate) navigator.vibrate(50);
+            }
+
+            // 2. 移除 DOM 并调整剩余卡片位置
+            setTimeout(() => {
+                currentCard.remove();
+                adjustStack();
+                currentIndex++;
+                
+                if (stack.children.length === 0) {
+                    setTimeout(() => alert("画像初始化完成！"), 300);
+                }
+            }, 300);
+        }
+
+        function adjustStack() {
+            const remaining = stack.children;
+            for (let i = 0; i < remaining.length; i++) {
+                // 重新计算样式: 倒数第一个是 Top (scale 1)，倒数第二个是 scale 0.95...
+                const reverseIndex = remaining.length - 1 - i;
+                // 让最上面的恢复 scale 1
+                remaining[i].style.transform = `scale(${1 - reverseIndex * 0.05}) translateY(${reverseIndex * 10}px)`;
+                remaining[i].style.opacity = 1 - reverseIndex * 0.2;
+                remaining[i].style.zIndex = i;
+            }
+        }
+
+        initCards();
+
+    </script>
+</body>
+</html>

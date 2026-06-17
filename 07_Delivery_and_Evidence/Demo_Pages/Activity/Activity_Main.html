@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>邀请好友一起干饭 - 优化版</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    /* 基础重置与预览容器（模拟手机屏幕） */
+    body {
+      margin: 0;
+      background-color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      padding: 20px 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', sans-serif;
+    }
+    .mobile-container {
+      width: 375px;
+      min-height: 667px;
+      background-color: #F5F7FA;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      border-radius: 30px;
+      overflow: hidden;
+      position: relative;
+    }
+    .invite-page {
+      padding-bottom: 20px;
+    }
+
+    /* 1) 顶部信息区 */
+    .header-section {
+      background: linear-gradient(135deg, #aadd11 0%, #9dc514 100%);
+      padding: 30px 15px 40px 15px;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+    }
+    .page-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #fff;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .sub-title {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.9);
+      display: block;
+      margin-bottom: 20px;
+    }
+    .coins-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(157, 197, 20, 0.2);
+    }
+    .coins-label {
+      font-size: 14px;
+      color: #666;
+      margin-right: 8px;
+    }
+    .coins-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #9dc514;
+    }
+    .details-btn {
+      background: #f0f7e6; /* 轻量化背景 */
+      color: #9dc514;
+      font-size: 13px;
+      border-radius: 20px;
+      padding: 6px 16px;
+      border: 1px solid #9dc514;
+      cursor: pointer;
+    }
+
+    /* 主体内容区 */
+    .content-section {
+      padding: 0 15px;
+      margin-top: -15px; 
+    }
+
+    /* 卡片通用样式 */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+    }
+    .rule-link {
+      font-size: 12px;
+      color: #999;
+      cursor: pointer;
+    }
+    .highlight-text {
+      color: #9dc514;
+      font-weight: bold;
+    }
+
+    /* 按钮通用样式 */
+    .primary-btn {
+      background: #9dc514;
+      color: #fff;
+      border-radius: 20px;
+      font-size: 14px;
+      padding: 8px 0;
+      border: none;
+      text-align: center;
+      cursor: pointer;
+    }
+    .block-btn {
+      width: 100%;
+      display: block;
+    }
+    .outline-btn {
+      background: #fff;
+      color: #9dc514;
+      border: 1px solid #9dc514;
+    }
+
+    /* 2) 新人红包 */
+    .newbie-body {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .amount-box {
+      color: #ff4d4f;
+      font-weight: bold;
+    }
+    .currency { font-size: 18px; margin-right: 4px; }
+    .amount-range { font-size: 28px; }
+    .newbie-body .primary-btn { padding: 8px 20px; }
+
+    /* 3) 邀新赚钱 */
+    .rules-summary {
+      font-size: 12px;
+      color: #999;
+      display: block;
+      margin-bottom: 15px;
+    }
+    .invite-count { font-size: 13px; margin-right: 10px; }
+    .header-right { display: flex; align-items: center; }
+    
+    .steps-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .step-num {
+      width: 24px;
+      height: 24px;
+      background: #f0f7e6;
+      color: #9dc514;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 24px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .step-text { font-size: 12px; color: #666; }
+    .step-line {
+      flex: 1;
+      height: 1px;
+      background: #eee;
+      margin: 0 10px;
+      margin-top: -18px;
+    }
+
+    /* 4) 每日签到 */
+    .checkin-progress { font-size: 13px; color: #666; margin-right: 10px; }
+    .days-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      gap: 6px;
+    }
+    .day-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #f8f8f8;
+      padding: 8px 0;
+      border-radius: 6px;
+      flex: 1;
+    }
+    .day-item.active {
+      background: #f0f7e6;
+      border: 1px solid #9dc514;
+    }
+    .day-coin { font-size: 12px; color: #666; margin-bottom: 4px; }
+    .day-item.active .day-coin { color: #9dc514; }
+    .day-text { font-size: 10px; color: #999; }
+
+    /* 5) 限时活动 (已提到任务上方) */
+    .event-banner {
+      background: #f0f7e6;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .event-info { display: flex; flex-direction: column; }
+    .event-tier { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 4px; }
+    .event-time { font-size: 11px; color: #666; }
+    .small-btn { padding: 6px 16px; font-size: 13px; margin: 0; }
+    
+    /* 活动状态: 回填输入区 */
+    .event-input-area {
+      margin-top: 12px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      border: 1px solid #eee;
+    }
+    .event-input-area input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 13px;
+      color: #333;
+    }
+    .paste-btn {
+      color: #9dc514;
+      font-size: 13px;
+      background: none;
+      border: none;
+      border-left: 1px solid #ddd;
+      padding-left: 10px;
+      cursor: pointer;
+    }
+    .submit-btn {
+      margin-top: 10px;
+    }
+    
+    /* 活动状态: 进度条区 */
+    .event-progress-area {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px dashed #eee;
+    }
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .progress-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .node-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      margin-bottom: 6px;
+      z-index: 2;
+    }
+    .node-dot.active {
+      background: #9dc514;
+      box-shadow: 0 0 0 3px #f0f7e6;
+    }
+    .node-text { font-size: 12px; color: #999; }
+    .node-text.active { color: #9dc514; font-weight: bold; }
+    .progress-line {
+      width: 80px;
+      height: 3px;
+      background: #e0e0e0;
+      margin: 0 8px;
+      margin-top: -18px; /* 向上偏移对齐圆点 */
+    }
+    .progress-line.active { background: #9dc514; }
+
+    /* 模拟测试辅助按钮 */
+    .mock-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .mock-actions button {
+      font-size: 10px; padding: 2px 6px; border: 1px solid #ccc; background: #fff; border-radius: 4px; color:#666;
+    }
+
+    /* 6) 任务板块 */
+    .task-list { display: flex; flex-direction: column; }
+    .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .task-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .task-info { display: flex; flex-direction: column; }
+    .task-name { font-size: 14px; color: #333; margin-bottom: 4px; }
+    .task-reward { font-size: 12px; color: #ff9900; }
+    .status-btn {
+      font-size: 12px;
+      padding: 6px 15px;
+      border-radius: 15px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-todo { background: #9dc514; color: #fff; }
+    .btn-done { background: #f0f0f0; color: #bbb; }
+    .btn-locked { background: #fff; color: #ccc; border: 1px solid #eee; }
+
+  </style>
+</head>
+<body>
+
+  <div id="app" class="mobile-container">
+    <div class="invite-page">
+      
+      <!-- 1) 顶部信息区 -->
+      <div class="header-section">
+        <span class="page-title">邀请好友一起干饭</span>
+        <span class="sub-title">现金红包直接到账微信，无门槛提现</span>
+        
+        <div class="coins-card">
+          <div class="coins-left">
+            <span class="coins-label">我的金币</span>
+            <span class="coins-value">8,500</span>
+          </div>
+          <div class="coins-right">
+            <!-- 优化1 & 2：替换为明细按钮 -->
+            <button class="details-btn">明细</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 主体内容区 -->
+      <div class="content-section">
+        
+        <!-- 2) 新人专属红包卡片 -->
+        <div class="card newbie-card">
+          <div class="card-header">
+            <span class="card-title">新人专属红包</span>
+            <!-- 优化2：规则放入卡片 -->
+            <span class="rule-link">规则 &gt;</span>
+          </div>
+          <div class="newbie-body">
+            <div class="amount-box">
+              <span class="currency">¥</span>
+              <span class="amount-range">15.0 - 50.0</span>
+            </div>
+            <button class="primary-btn">立即领取</button>
+          </div>
+        </div>
+
+        <!-- 3) 邀新赚钱卡片 -->
+        <div class="card invite-card">
+          <div class="card-header">
+            <span class="card-title">邀新赚钱</span>
+            <div class="header-right">
+              <span class="invite-count">已邀请 <span class="highlight-text">3</span> 人</span>
+              <span class="rule-link">规则 &gt;</span>
+            </div>
+          </div>
+          <span class="rules-summary">每邀请1位新用户，最高可得30元现金</span>
+          <div class="steps-box">
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <span class="step-text">分享链接</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <span class="step-text">好友点击</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <span class="step-text">现金到账</span>
+            </div>
+          </div>
+          <button class="primary-btn block-btn">立即邀请</button>
+        </div>
+
+        <!-- 4) 每日签到板块 -->
+        <div class="card checkin-card">
+          <div class="card-header">
+            <span class="card-title">每日签到</span>
+            <div class="header-right">
+              <span class="checkin-progress">已连续签到 2 天</span>
+              <span class="rule-link">规则 &gt;</span>
+            </div>
+          </div>
+          <div class="days-row">
+            <!-- 优化3：统一 1-7 天的普通样式 -->
+            <div class="day-item" v-for="day in 7" :key="day" :class="{ active: day <= 2 }">
+              <span class="day-coin">+10</span>
+              <span class="day-text">{{ day }}天</span>
+            </div>
+          </div>
+          <button class="primary-btn block-btn outline-btn">今日签到</button>
+        </div>
+
+        <!-- 优化4：限时活动板块提到上方 -->
+        <!-- 5) 限时活动板块 (包含状态机) -->
+        <div class="card event-card">
+          <div class="card-header">
+            <span class="card-title">周末狂欢档</span>
+            <span class="rule-link">规则 &gt;</span>
+          </div>
+          
+          <div class="event-banner">
+            <div class="event-info">
+              <span class="event-tier">周末狂欢档</span>
+              <span class="event-time">活动时间：本周六至周日</span>
+            </div>
+            <!-- 状态1：未参与 -->
+            <button v-if="eventState === 0" class="primary-btn small-btn" @click="changeEventState(1)">去参与</button>
+            <span v-else style="font-size:13px; color:#9dc514; font-weight:bold;">已参与</span>
+          </div>
+
+          <!-- 优化5：状态2 - 已参与，显示输入框和粘贴 -->
+          <div v-if="eventState === 1">
+            <div class="event-input-area">
+              <input type="text" placeholder="请在此粘贴订单号/回填口令" v-model="inputValue" />
+              <button class="paste-btn" @click="pasteText">粘贴</button>
+            </div>
+            <button class="primary-btn block-btn submit-btn" @click="changeEventState(2)">提交审核</button>
+          </div>
+
+          <!-- 优化5：状态3 & 4 - 审核进度条与完成状态 -->
+          <div v-if="eventState >= 2" class="event-progress-area">
+            <div class="progress-bar">
+              <div class="progress-node">
+                <div class="node-dot active"></div>
+                <span class="node-text active">审核中</span>
+              </div>
+              <div class="progress-line" :class="{ active: eventState === 3 }"></div>
+              <div class="progress-node">
+                <div class="node-dot" :class="{ active: eventState === 3 }"></div>
+                <span class="node-text" :class="{ active: eventState === 3 }">已完成</span>
+              </div>
+            </div>
+            
+            <!-- 状态4：已完成出现领取按钮 -->
+            <button v-if="eventState === 3" class="primary-btn block-btn">立即领取奖励</button>
+          </div>
+
+          <!-- 仅供预览体验状态的控制面板（正式环境删除） -->
+          <div class="mock-actions">
+            <button @click="changeEventState(0)">设为未参与</button>
+            <button @click="changeEventState(2)" v-if="eventState === 1 || eventState === 3">模拟提交审核</button>
+            <button @click="changeEventState(3)" v-if="eventState === 2">模拟审核通过</button>
+          </div>
+        </div>
+
+        <!-- 6) 任务板块 -->
+        <div class="card task-card">
+          <div class="card-header">
+            <span class="card-title">做任务赚金币</span>
+            <span class="rule-link">规则 &gt;</span>
+          </div>
+          <div class="task-list">
+            <div class="task-item" v-for="(task, index) in tasks" :key="index">
+              <div class="task-info">
+                <span class="task-name">{{ task.name }}</span>
+                <span class="task-reward">+{{ task.reward }} 金币</span>
+              </div>
+              <button 
+                class="status-btn" 
+                :class="getStatusClass(task.status)">
+                {{ getStatusText(task.status) }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+      setup() {
+        // --- 任务列表数据 ---
+        const tasks = ref([
+          { name: '浏览优质食谱30秒', reward: 50, status: 1 },
+          { name: '分享一道菜谱给微信好友', reward: 100, status: 2 },
+          { name: '发布你的第一篇干饭日记', reward: 500, status: 0 }
+        ]);
+
+        const getStatusText = (status) => {
+          const map = { 0: '未解锁', 1: '去完成', 2: '已完成' };
+          return map[status];
+        };
+
+        const getStatusClass = (status) => {
+          return {
+            'btn-locked': status === 0,
+            'btn-todo': status === 1,
+            'btn-done': status === 2
+          };
+        };
+
+        // --- 活动板块状态机 ---
+        // 0: 未参与, 1: 填写单号中, 2: 审核中, 3: 审核完成可领取
+        const eventState = ref(0);
+        const inputValue = ref('');
+
+        const changeEventState = (state) => {
+          eventState.value = state;
+          if(state === 0) inputValue.value = ''; // 重置时清空输入框
+        };
+
+        // 模拟粘贴功能
+        const pasteText = () => {
+          // 由于浏览器安全限制，这里用模拟文本代替实际的 navigator.clipboard
+          inputValue.value = 'MOCK_ORDER_123456789';
+        };
+
+        return {
+          tasks,
+          getStatusText,
+          getStatusClass,
+          eventState,
+          inputValue,
+          changeEventState,
+          pasteText
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

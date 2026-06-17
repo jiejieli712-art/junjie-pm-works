@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>偏好设置 - V3 业务逻辑修正版</title>
+    <style>
+        :root {
+            --primary-color: #8CC63F;
+            --bg-color: #F5F7FA;
+            --card-bg: #FFFFFF;
+            --text-main: #333333;
+            --text-sub: #999999;
+            --warn-color: #FF6B6B;
+            --love-color: #FF9F43;
+        }
+
+        body {
+            background-color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #fff;
+            border-radius: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            overflow: hidden;
+            position: relative;
+            border: 8px solid #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-bar {
+            height: 44px;
+            padding-top: 40px;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 16px;
+            padding-right: 16px;
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .content-scroll {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background-color: var(--bg-color);
+            scrollbar-width: none; 
+        }
+        .content-scroll::-webkit-scrollbar { display: none; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px; /* 减小间距 */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .section-title { font-size: 16px; font-weight: bold; color: var(--text-main); }
+        .expand-btn { font-size: 13px; color: var(--text-sub); cursor: pointer; }
+
+        /* --- 标签通用样式 --- */
+        .tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            transition: max-height 0.3s ease;
+        }
+        
+        .tag {
+            padding: 6px 14px;
+            background: #F0F2F5;
+            color: #666;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+        .tag.active {
+            background: rgba(140, 198, 63, 0.1);
+            color: #6f9e30;
+            border-color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        /* 口味雷达折叠样式 */
+        .tag-group.collapsed {
+            max-height: 85px; 
+            overflow: hidden;
+            position: relative;
+        }
+        .tag-group.collapsed::after {
+            content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 30px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1));
+            pointer-events: none;
+        }
+
+        /* --- 红黑榜样式 (优化版) --- */
+        .search-box {
+            display: flex;
+            background: #F0F2F5;
+            border-radius: 8px;
+            padding: 0 12px;
+            height: 36px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .search-input {
+            flex: 1; border: none; background: transparent; outline: none; font-size: 13px;
+        }
+
+        /* 高频词标签池 */
+        .pool-title { font-size: 12px; color: #999; margin-bottom: 8px; display: block; }
+        .pool-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            padding: 4px 10px;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+        }
+        .chip:active { background: #f0f0f0; }
+
+        /* 已选结果 */
+        .selected-list { margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px; }
+        .selected-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 8px; margin-bottom: 8px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .item-love { background: rgba(255, 159, 67, 0.1); color: var(--love-color); border: 1px solid rgba(255, 159, 67, 0.3); }
+        .item-hate { background: rgba(245, 245, 245, 1); color: #999; text-decoration: line-through; border: 1px solid #ddd; }
+        .del-btn { margin-left: 6px; font-weight: bold; cursor: pointer; }
+
+        /* --- 底部 ActionSheet 弹窗 --- */
+        .action-sheet-mask {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 20; display: none;
+            flex-direction: column; justify-content: flex-end;
+        }
+        .action-sheet {
+            background: #fff;
+            border-radius: 16px 16px 0 0;
+            padding: 20px;
+            animation: slideUp 0.3s ease-out;
+        }
+        .sheet-title { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 20px; }
+        .sheet-highlight { color: var(--primary-color); }
+        
+        .action-btn-group { display: flex; gap: 16px; }
+        .action-btn {
+            flex: 1; height: 44px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 14px; cursor: pointer;
+        }
+        .btn-love { background: rgba(255, 159, 67, 0.15); color: #e58e3c; }
+        .btn-hate { background: rgba(153, 153, 153, 0.15); color: #666; }
+        
+        .btn-cancel {
+            margin-top: 12px; width: 100%; height: 44px;
+            background: #f5f5f5; border-radius: 8px; color: #666;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+
+        .bottom-bar {
+            background: #fff; padding: 12px 24px; padding-bottom: 34px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .save-btn {
+            width: 100%; height: 48px;
+            background: var(--primary-color); color: #fff;
+            border: none; border-radius: 25px;
+            font-size: 16px; font-weight: bold;
+        }
+
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame">
+        <div class="nav-bar">
+            <span>‹</span>
+            <span>偏好设置</span>
+            <span></span>
+        </div>
+
+        <div class="content-scroll">
+            
+            <div class="card">
+                <div class="section-header">
+                    <span class="section-title">基础信息</span>
+                </div>
+                <div class="tag-group">
+                    <div class="tag active" onclick="toggleSimple(this)">上班族</div>
+                    <div class="tag" onclick="toggleSimple(this)">学生党</div>
+                    <div class="tag" onclick="toggleSimple(this)">健身达人</div>
+                    <div class="tag" onclick="toggleSimple(this)">孕妈</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <span class="section-title">口味雷达</span>
+                    <div class="expand-btn" onclick="toggleExpand('taste-group', this)">展开全部 ▾</div>
+                </div>
+                <div class="tag-group collapsed" id="taste-group">
+                    <div class="tag active" onclick="toggleSimple(this)">无辣不欢</div>
+                    <div class="tag active" onclick="toggleSimple(this)">面食脑袋</div>
+                    <div class="tag" onclick="toggleSimple(this)">甜食控</div>
+                    <div class="tag" onclick="toggleSimple(this)">清淡饮食</div>
+                    <div class="tag" onclick="toggleSimple(this)">肉食动物</div>
+                    <div class="tag" onclick="toggleSimple(this)">川湘菜</div>
+                    <div class="tag" onclick="toggleSimple(this)">日式料理</div>
+                    <div class="tag" onclick="toggleSimple(this)">韩国料理</div>
+                    <div class="tag" onclick="toggleSimple(this)">减脂餐</div>
+                    <div class="tag" onclick="toggleSimple(this)">素食主义</div>
+                    <div class="tag" onclick="toggleSimple(this)">高蛋白</div>
+                    <div class="tag" onclick="toggleSimple(this)">低碳水</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <span class="section-title">饮食红黑榜</span>
+                    <span style="font-size:12px; color:#999">完善画像更精准</span>
+                </div>
+                
+                <div class="search-box">
+                    <span style="margin-right:8px">🔍</span>
+                    <input type="text" class="search-input" id="dish-input" placeholder="搜索菜品/食材 (如: 香菜)">
+                    <span style="color:var(--primary-color); font-weight:bold; font-size:13px; cursor:pointer" onclick="handleSearch()">添加</span>
+                </div>
+
+                <span class="pool-title">快速标记 (大家都在选)</span>
+                <div class="pool-chips">
+                    <div class="chip" onclick="openActionSheet('香菜')">香菜</div>
+                    <div class="chip" onclick="openActionSheet('葱')">葱</div>
+                    <div class="chip" onclick="openActionSheet('蒜')">蒜</div>
+                    <div class="chip" onclick="openActionSheet('红烧肉')">红烧肉</div>
+                    <div class="chip" onclick="openActionSheet('海鲜')">海鲜</div>
+                    <div class="chip" onclick="openActionSheet('折耳根')">折耳根</div>
+                    <div class="chip" onclick="openActionSheet('火锅')">火锅</div>
+                    <div class="chip" onclick="openActionSheet('猪肝')">猪肝</div>
+                </div>
+
+                <div class="selected-list" id="selected-area">
+                    <div class="selected-item item-love">
+                        ❤️ 红烧肉 <span class="del-btn" onclick="removeTag(this)">×</span>
+                    </div>
+                    <div class="selected-item item-hate">
+                        🚫 香菜 <span class="del-btn" onclick="removeTag(this)">×</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="height:50px"></div>
+        </div>
+
+        <div class="bottom-bar">
+            <button class="save-btn">保存设置</button>
+        </div>
+
+        <div class="action-sheet-mask" id="sheet-mask">
+            <div class="action-sheet">
+                <div class="sheet-title">你对 <span class="sheet-highlight" id="target-dish">菜品</span> 的态度是?</div>
+                <div class="action-btn-group">
+                    <div class="action-btn btn-love" onclick="confirmAdd('love')">❤️ 特别爱吃</div>
+                    <div class="action-btn btn-hate" onclick="confirmAdd('hate')">🚫 坚决不吃</div>
+                </div>
+                <div class="btn-cancel" onclick="closeActionSheet()">取消</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. 简单的标签点击切换
+        function toggleSimple(el) {
+            el.classList.toggle('active');
+        }
+
+        // 2. 折叠逻辑
+        function toggleExpand(id, btn) {
+            const el = document.getElementById(id);
+            if(el.classList.contains('collapsed')) {
+                el.classList.remove('collapsed');
+                btn.innerText = '收起 ▴';
+            } else {
+                el.classList.add('collapsed');
+                btn.innerText = '展开全部 ▾';
+            }
+        }
+
+        // --- 红黑榜核心逻辑 ---
+        let currentDish = '';
+
+        // 打开选择弹窗
+        function openActionSheet(dishName) {
+            currentDish = dishName;
+            document.getElementById('target-dish').innerText = dishName;
+            document.getElementById('sheet-mask').style.display = 'flex';
+        }
+
+        // 关闭弹窗
+        function closeActionSheet() {
+            document.getElementById('sheet-mask').style.display = 'none';
+        }
+
+        // 搜索处理 (模拟搜索)
+        function handleSearch() {
+            const val = document.getElementById('dish-input').value.trim();
+            if(!val) return;
+            // 真实场景：这里会调API查询数据库是否存在该菜品
+            // 演示场景：直接打开选择弹窗
+            openActionSheet(val); 
+            document.getElementById('dish-input').value = '';
+        }
+
+        // 确认添加
+        function confirmAdd(type) {
+            const container = document.getElementById('selected-area');
+            
+            // 查重逻辑 (简单演示)
+            const existing = Array.from(container.children).find(el => el.innerText.includes(currentDish));
+            if(existing) existing.remove();
+
+            const div = document.createElement('div');
+            // 根据态度赋予不同样式
+            if (type === 'love') {
+                div.className = 'selected-item item-love';
+                div.innerHTML = `❤️ ${currentDish} <span class="del-btn" onclick="removeTag(this)">×</span>`;
+            } else {
+                div.className = 'selected-item item-hate';
+                div.innerHTML = `🚫 ${currentDish} <span class="del-btn" onclick="removeTag(this)">×</span>`;
+            }
+            
+            container.appendChild(div);
+            closeActionSheet();
+        }
+
+        function removeTag(btn) {
+            btn.parentElement.remove();
+        }
+    </script>
+</body>
+</html>

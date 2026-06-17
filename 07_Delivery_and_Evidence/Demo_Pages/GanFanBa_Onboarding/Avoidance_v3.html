@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 5 - 画像确认</title>
+    <style>
+        :root { --primary: #8CC63F; --warn: #FF6B6B; --text: #333; }
+        body { background: #7f7f7f; font-family: sans-serif; display: flex; justify-content: center; align-items: flex-end; min-height: 100vh; margin: 0; padding-bottom: 20px; }
+        
+        .card { width: 340px; background: #fff; border-radius: 20px; padding: 24px 20px; position: relative; }
+        
+        .head-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .sub-title { font-size: 12px; color: #999; margin-bottom: 20px; }
+
+        /* 区域标题 */
+        .sec-title { font-size: 14px; font-weight: bold; margin: 20px 0 10px; display: flex; justify-content: space-between; }
+        .hint { font-size: 12px; color: #999; font-weight: normal; }
+
+        .tags { display: flex; flex-wrap: wrap; gap: 10px; }
+
+        /* A类：正向偏好 (默认绿) */
+        .tag-like { padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+        /* 默认选中态 */
+        .tag-like.active { background: var(--primary); color: #fff; }
+        /* 取消态 */
+        .tag-like.inactive { background: #F5F7FA; color: #ccc; text-decoration: line-through; }
+
+        /* B类：负向排斥 (默认灰) */
+        .tag-hate { padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid #eee; color: #666; transition: all 0.2s; }
+        /* 选中排斥态 */
+        .tag-hate.active { background: #FFEBEE; color: var(--warn); border-color: var(--warn); font-weight: bold; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 30px; }
+        .btn { flex: 1; height: 44px; border-radius: 22px; border: none; font-weight: bold; font-size: 15px; cursor: pointer; }
+        .btn-sec { background: #fff; border: 1px solid #eee; color: #666; }
+        .btn-pri { background: var(--primary); color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="head-title">画像已生成 ✨</div>
+        <div class="sub-title">系统根据您的选菜推测：</div>
+
+        <div class="sec-title">
+            <span>❤️ 你的口味 DNA</span>
+            <span class="hint">点击移除不准的</span>
+        </div>
+        <div class="tags">
+            <div class="tag-like active" onclick="toggleLike(this)">川湘口味</div>
+            <div class="tag-like active" onclick="toggleLike(this)">重辣</div>
+            <div class="tag-like active" onclick="toggleLike(this)">肉食主义</div>
+            <div class="tag-like active" onclick="toggleLike(this)">重口味</div>
+        </div>
+
+        <div class="sec-title">
+            <span>💣 饮食雷区</span>
+            <span class="hint">有没有绝对不吃的？</span>
+        </div>
+        <div class="tags">
+            <div class="tag-hate" onclick="toggleHate(this)">香菜</div>
+            <div class="tag-hate" onclick="toggleHate(this)">内脏</div>
+            <div class="tag-hate" onclick="toggleHate(this)">生食</div>
+            <div class="tag-hate" onclick="toggleHate(this)">肥肉</div>
+            <div class="tag-hate" onclick="toggleHate(this)">葱姜蒜</div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-sec">上一步</button>
+            <button class="btn btn-pri" onclick="alert('完成！进入首页')">开启干饭</button>
+        </div>
+    </div>
+
+    <script>
+        // 偏好逻辑：默认是active，点击变inactive
+        function toggleLike(el) {
+            if(el.classList.contains('active')) {
+                el.classList.remove('active'); el.classList.add('inactive');
+            } else {
+                el.classList.remove('inactive'); el.classList.add('active');
+            }
+        }
+        // 排斥逻辑：默认是无，点击变active(红)
+        function toggleHate(el) {
+            el.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>

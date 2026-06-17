@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>转盘点餐交互原型</title>
+    <style>
+        :root {
+            --wheel-size: 350px;
+            --plate-size: 80px;
+            --bg-color: #f4f1ea;
+            --wheel-color: #e6d5b8;
+            --mask-color: #ff6b6b;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'PingFang SC', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h2 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+
+        /* 容器 */
+        .game-container {
+            position: relative;
+            width: var(--wheel-size);
+            height: var(--wheel-size);
+            margin-bottom: 40px;
+        }
+
+        /* 转盘主体 */
+        .turntable {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: var(--wheel-color);
+            border: 8px solid #d4c0a1;
+            position: relative;
+            transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1); /* 缓动效果 */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        /* 菜品板块 (9个) */
+        .plate {
+            position: absolute;
+            width: var(--plate-size);
+            height: var(--plate-size);
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            margin-top: calc(var(--plate-size) / -2);
+            margin-left: calc(var(--plate-size) / -2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            font-size: 12px;
+            color: #555;
+            text-align: center;
+            /* 关键布局逻辑：先旋转角度，再推向边缘，再反向旋转图片保持直立 */
+        }
+
+        .plate img, .plate .emoji {
+            font-size: 32px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .plate.is-new {
+            animation: highlight 1s ease;
+            background-color: #fff8e1;
+            border: 2px solid #ffcc00;
+        }
+
+        /* 遮罩/出餐口 */
+        .mask-zone {
+            position: absolute;
+            width: calc(var(--plate-size) + 20px);
+            height: calc(var(--plate-size) + 20px);
+            background-color: var(--mask-color);
+            bottom: -10px; /* 固定在底部 */
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 12px 12px 0 0;
+            z-index: 10; /* 盖在转盘上面 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.2);
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .mask-zone::after {
+            content: "▼";
+            position: absolute;
+            top: -15px;
+            color: var(--mask-color);
+            font-size: 20px;
+        }
+
+        /* 控制按钮 */
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        @keyframes highlight {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(0deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h2>今日菜单转盘</h2>
+
+    <div class="game-container">
+        <div class="turntable" id="turntable">
+            </div>
+
+        <div class="mask-zone">
+            后厨<br>出餐口
+        </div>
+    </div>
+
+    <button onclick="spinWheel()" id="spinBtn">旋转并上新菜</button>
+
+    <script>
+        // 预设菜品库
+        const dishDatabase = [
+            { name: "红烧肉", icon: "🍖" },
+            { name: "清蒸鱼", icon: "🐟" },
+            { name: "宫保鸡丁", icon: "🐓" },
+            { name: "麻婆豆腐", icon: "🥘" },
+            { name: "炒青菜", icon: "🥬" },
+            { name: "番茄汤", icon: "🍅" },
+            { name: "大米饭", icon: "🍚" },
+            { name: "炸鸡腿", icon: "🍗" },
+            { name: "小笼包", icon: "🥟" },
+            { name: "牛肉面", icon: "🍜" },
+            { name: "火锅", icon: "🍲" },
+            { name: "寿司", icon: "🍣" }
+        ];
+
+        const turntable = document.getElementById('turntable');
+        const totalPlates = 9;
+        const angleStep = 360 / totalPlates;
+        let platesElements = [];
+        let currentRotation = 0;
+
+        // 初始化转盘
+        function initTurntable() {
+            for (let i = 0; i < totalPlates; i++) {
+                const plate = document.createElement('div');
+                plate.className = 'plate';
+                // 计算位置：先旋转到对应角度，再向外平移半径距离（130px），再反向旋转抵消文字倾斜
+                const transformCSS = `rotate(${i * angleStep}deg) translate(0, -130px) rotate(-${i * angleStep}deg)`;
+                plate.style.transform = transformCSS;
+                
+                // 填充初始数据
+                const dish = dishDatabase[i % dishDatabase.length];
+                plate.innerHTML = `<span class="emoji">${dish.icon}</span><div>${dish.name}</div>`;
+                
+                // 存储索引，方便后续查找
+                plate.dataset.index = i;
+                
+                turntable.appendChild(plate);
+                platesElements.push(plate);
+            }
+        }
+
+        // 随机获取一个新菜
+        function getRandomDish() {
+            const randomIndex = Math.floor(Math.random() * dishDatabase.length);
+            return dishDatabase[randomIndex];
+        }
+
+        // 旋转逻辑
+        function spinWheel() {
+            const btn = document.getElementById('spinBtn');
+            btn.disabled = true;
+
+            // 1. 计算旋转：
+            // 我们希望底部的那个盘子（index 0 最初在顶部，所以底部是 index 4 或 5 左右）
+            // 为了简单，我们每次旋转随机圈数 + 使得某个特定的板块正好停在底部（180度位置）
+            
+            // 随机选择一个目标板块停在底部 (0-8)
+            const targetIndexAtBottom = Math.floor(Math.random() * totalPlates);
+            
+            // 计算这个板块当前的物理角度
+            // 目标位置是 180度 (CSS圆环坐标系中，0度在12点，180度在6点)
+            
+            // 逻辑：让转盘旋转，使得 targetIndex 指向 180度
+            // 这是一个简单的视觉模拟，实际开发可以用更复杂的物理引擎
+            
+            const randomRounds = 3 + Math.floor(Math.random() * 3); // 随机转3-5圈
+            const targetAngle = 180 - (targetIndexAtBottom * angleStep); 
+            
+            // 累加旋转角度，保证一直顺时针转
+            const finalRotation = currentRotation + (360 * randomRounds) + (targetAngle - (currentRotation % 360));
+            
+            // 修正：确保 finalRotation > currentRotation
+            let realRotation = finalRotation;
+            if (realRotation <= currentRotation) realRotation += 360;
+
+            turntable.style.transform = `rotate(${realRotation}deg)`;
+            currentRotation = realRotation;
+
+            // 2. 监听动画结束
+            setTimeout(() => {
+                btn.disabled = false;
+                
+                // 3. 核心功能：刷新停在底部的菜品
+                // 此时，platesElements[targetIndexAtBottom] 正好位于遮罩下方
+                const plateToUpdate = platesElements[targetIndexAtBottom];
+                
+                // 模拟“进货”：更换数据
+                const newDish = getRandomDish();
+                plateToUpdate.innerHTML = `<span class="emoji">${newDish.icon}</span><div>${newDish.name}</div>`;
+                
+                // 添加高亮样式，表示这是一个新生成的菜
+                plateToUpdate.classList.add('is-new');
+                setTimeout(() => plateToUpdate.classList.remove('is-new'), 2000);
+                
+                console.log(`板块 ${targetIndexAtBottom} 已更新为 ${newDish.name}`);
+                
+            }, 3000); // 对应 CSS transition 时间
+        }
+
+        initTurntable();
+    </script>
+</body>
+</html>

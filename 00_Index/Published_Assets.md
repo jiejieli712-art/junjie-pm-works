@@ -50,9 +50,30 @@
 | `00_Index/` | `Project_Material_Report.md` | 展示本地材料整理结论 |
 | `00_Index/` | `Resume_Material_Library.md` | 展示面向产品+技术复合方向的项目素材提炼 |
 
+## 第二批补充材料
+
+| 目录 | 材料 | 用途 |
+| --- | --- | --- |
+| `01_Product_Strategy/PRD/GanFanBa_Bitego/` | `GanFanBa_PRD_Source.docx` | 补充干饭吧原始需求文档，支撑从需求定义到页面落地的叙事 |
+| `01_Product_Strategy/Business_Cases/` | `Company_Profile_LaiZhiYuan.docx` | 作为公司与业务背景材料，不单独作为核心项目 |
+| `01_Product_Strategy/Business_Cases/` | `GanFanBa_Phase2_Strategy.xmind` | 展示干饭吧二期商业策略与功能扩展思考 |
+| `01_Product_Strategy/Business_Cases/` | `MiniProgram_Ad_Access_Plan.*` | 展示小程序广告接入方案与商业化路径 |
+| `01_Product_Strategy/Business_Cases/` | `MiniProgram_CPS_Aggregation.xmind`、`CPS_Core_Information.xmind` | 展示 CPS 聚合平台接入与联盟信息梳理 |
+| `01_Product_Strategy/Business_Cases/` | `Ad_Placement_Recommendation.*` | 展示投放位置建议和商业化表达 |
+| `03_User_Experience/Wireframes/` | `Design_Delivery_Document.docx` | 展示设计需求交付与跨角色协作材料 |
+| `03_User_Experience/High_Fidelity_Prototypes/GanFanBa_Bitego/` | `Gameplay_Page*`、`Turntable_*` | 补充玩法模块、转盘模块的高保真与原型证据 |
+| `06_Data_and_Operations/Dish_Data_Structure/` | `Optimized_Dish_Fields*`、`Dish_Upload_Template.xlsx` | 展示菜品字段结构化、补充优化和后台上传模板 |
+| `06_Data_and_Operations/Dish_Data_Structure/` | `Preference_Tags*`、`Dish_Data_Source.xmind` | 展示偏好标签与菜品数据来源梳理 |
+| `06_Data_and_Operations/Operational_Insights/` | `User_Profile_Algorithm_v1.docx`、`Dish_Recommendation_Algorithm_v1.docx`、`Algorithm_Optimization.xmind` | 展示用户画像、菜品推荐和算法优化思路 |
+| `07_Delivery_and_Evidence/Copyright_and_Filing/` | `Software_Description_Draft.docx`、`Copyright_Process.*` | 作为软著/交付可信度补强材料 |
+| `07_Delivery_and_Evidence/Demo_Pages/` | `Activity/`、`GanFanBa_*`、`YuanLai_Short_Drama/`、`Company_Website/` | 展示活动页、偏好冷启动、玩法、商家列表、短剧页和官网页面原型 |
+
 ## 未上传内容
 
 - 原始完整压缩包。
 - 大体积明细数据，例如 `all_matched.csv` 和 `all_matched.json`。
 - 含明文 API Key 的原始脚本。
 - 账号、密钥、Token、内部配置和未脱敏业务数据。
+- `菜品库_v1_20260202.xlsx`，文件约 552MB，属于大体积原始菜品库，不适合进入公开作品集仓库。
+- `安全责任书-李俊杰-7220764418.docx`，属于个人责任/身份相关材料，不上传。
+- `微信二维码.png`，属于联系方式/二维码类材料，不上传。

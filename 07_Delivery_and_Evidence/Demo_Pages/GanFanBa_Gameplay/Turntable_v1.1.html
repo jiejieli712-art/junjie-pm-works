@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无限美食转盘 - 高保真原型</title>
+    <style>
+        :root {
+            --wheel-size: 360px;
+            --plate-size: 80px;
+            --bg-color: #fcefdc; /* 暖色背景 */
+            --wood-dark: #8b5a2b;
+            --wood-light: #a67c52;
+            --plate-bg: #ffffff;
+            --mask-bg: #d32f2f;
+            --text-main: #4e342e;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#fae3c2 2px, transparent 0); /* 波点背景纹理 */
+            background-size: 20px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        /* 标题 */
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--wood-dark);
+            text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+        }
+        p.subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        /* 游戏主容器 */
+        .game-stage {
+            position: relative;
+            width: var(--wheel-size);
+            height: var(--wheel-size);
+            /* 留出底部遮罩的空间 */
+            padding-bottom: 40px; 
+        }
+
+        /* 转盘底座 */
+        .turntable-base {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            /* 模拟木质纹理 */
+            background: repeating-radial-gradient(
+                circle at center,
+                var(--wood-light) 0,
+                var(--wood-light) 10px,
+                var(--wood-dark) 11px,
+                var(--wood-dark) 12px
+            );
+            box-shadow: 
+                inset 0 0 20px rgba(0,0,0,0.5), /* 内阴影 */
+                0 15px 30px rgba(0,0,0,0.3);    /* 外立体阴影 */
+            position: relative;
+            transition: transform 3s cubic-bezier(0.15, 0.8, 0.15, 1); /* 模拟物理阻尼 */
+        }
+
+        /* 中心装饰点 */
+        .turntable-base::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: #d4af37; /* 金色装饰 */
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            border: 4px solid #fff;
+        }
+
+        /* 单个菜品盘子 */
+        .plate-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: var(--plate-size);
+            height: var(--plate-size);
+            margin-top: calc(var(--plate-size) / -2);
+            margin-left: calc(var(--plate-size) / -2);
+            /* 此时只定位中心点，具体位置由JS计算transform */
+        }
+
+        .plate-content {
+            width: 100%;
+            height: 100%;
+            background: var(--plate-bg);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* 盘子投影 */
+            border: 3px solid #eee;
+            box-sizing: border-box;
+            transition: transform 0.3s; /* 用于摩天轮反向修正 */
+        }
+
+        .plate-content img, .plate-content .emoji {
+            font-size: 36px;
+            line-height: 1;
+            margin-bottom: 2px;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+        }
+
+        .plate-content span {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+            background: rgba(255,255,255,0.8);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        /* "New" 标签样式 */
+        .new-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4081;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: none; /* 默认隐藏 */
+        }
+        .plate-content.is-new .new-badge {
+            display: block;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        /* -----------------------
+           核心组件：出餐口遮罩 
+           ----------------------- */
+        .service-window {
+            position: absolute;
+            /* 必须大于盘子尺寸 */
+            width: 120px; 
+            height: 110px;
+            bottom: -20px; /* 稍微下沉 */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100; /* 最高层级 */
+            
+            /* 视觉样式：红白条纹遮阳棚 */
+            background: repeating-linear-gradient(
+                135deg,
+                #d32f2f,
+                #d32f2f 15px,
+                #ffffff 15px,
+                #ffffff 30px
+            );
+            border-bottom: 8px solid #b71c1c;
+            border-radius: 12px 12px 4px 4px;
+            box-shadow: 
+                0 -5px 15px rgba(0,0,0,0.3), /* 上方投影挡住盘子 */
+                0 10px 20px rgba(0,0,0,0.2); /* 整体投影 */
+            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* 遮罩上的文字牌 */
+        .window-sign {
+            background: #fff;
+            padding: 5px 15px;
+            border-radius: 4px;
+            border: 2px solid #d32f2f;
+            color: #d32f2f;
+            font-weight: 900;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 控制区 */
+        .controls {
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        button.spin-btn {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #b71c1c, 0 10px 10px rgba(0,0,0,0.2);
+            transition: all 0.1s;
+        }
+
+        button.spin-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #b71c1c, 0 4px 4px rgba(0,0,0,0.2);
+        }
+        
+        button.spin-btn:disabled {
+            background: #999;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: translateY(4px);
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>无限美食转盘</h1>
+    <p class="subtitle">点击按钮，后厨立即上新</p>
+
+    <div class="game-stage">
+        <div class="turntable-base" id="wheel">
+            </div>
+
+        <div class="service-window">
+            <div class="window-sign">
+                后厨<br>出餐口
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="spin-btn" onclick="spinHandler()" id="btn">旋转上菜</button>
+    </div>
+
+    <script>
+        /** * 配置与状态
+         */
+        const TOTAL_PLATES = 9;
+        const RADIUS = 140; // 盘子距离圆心的半径 px
+        const ANGLE_PER_PLATE = 360 / TOTAL_PLATES;
+        
+        // 菜品数据池
+        const MENU_ITEMS = [
+            { name: "红烧肉", icon: "🍖" },
+            { name: "清蒸鱼", icon: "🐟" },
+            { name: "麻婆豆腐", icon: "🥘" },
+            { name: "烤鸭", icon: "🦆" },
+            { name: "佛跳墙", icon: "🍲" },
+            { name: "小龙虾", icon: "🦞" },
+            { name: "大闸蟹", icon: "🦀" },
+            { name: "东坡肉", icon: "🥓" },
+            { name: "狮子头", icon: "🧆" },
+            { name: "口水鸡", icon: "🐓" },
+            { name: "回锅肉", icon: "🥩" },
+            { name: "大米饭", icon: "🍚" },
+            { name: "炸酱面", icon: "🍜" },
+            { name: "扬州炒饭", icon: "🍛" },
+            { name: "生煎包", icon: "🥟" }
+        ];
+
+        let wheelRotation = 0; // 转盘当前的旋转角度
+        const wheelEl = document.getElementById('wheel');
+        const platesRefs = []; // 存储盘子DOM引用
+
+        /**
+         * 1. 初始化转盘
+         */
+        function initWheel() {
+            for (let i = 0; i < TOTAL_PLATES; i++) {
+                // 创建容器
+                const container = document.createElement('div');
+                container.className = 'plate-container';
+                
+                // 计算初始位置 (Polar to Cartesian 简化版: 旋转+外推)
+                // 这里我们使用 CSS transform 组合: 
+                // 先旋转到对应角度 -> 向Y轴负方向推(向上) -> 从而分布在圆周
+                // 注意：0度在12点钟方向
+                container.style.transform = `rotate(${i * ANGLE_PER_PLATE}deg) translate(0, -${RADIUS}px)`;
+
+                // 创建内容 (盘子本体)
+                const content = document.createElement('div');
+                content.className = 'plate-content';
+                
+                // 修正内容角度：容器转了 X 度，内容要转 -X 度才能保持直立
+                // 但此时转盘还没动，所以初始修正就是 -i * ANGLE
+                content.style.transform = `rotate(-${i * ANGLE_PER_PLATE}deg)`;
+                
+                // 填充初始数据
+                const dish = getRandomDish();
+                content.innerHTML = `
+                    <div class="new-badge">New!</div>
+                    <div class="emoji">${dish.icon}</div>
+                    <span>${dish.name}</span>
+                `;
+
+                container.appendChild(content);
+                wheelEl.appendChild(container);
+                
+                // 存入引用数组，包含当前角度信息
+                platesRefs.push({
+                    container: container,
+                    content: content,
+                    baseAngle: i * ANGLE_PER_PLATE, // 初始物理角度
+                    index: i
+                });
+            }
+        }
+
+        /**
+         * 2. 核心旋转逻辑
+         */
+        function spinHandler() {
+            const btn = document.getElementById('btn');
+            btn.disabled = true;
+
+            // --- A. 计算目标角度 ---
+            // 我们希望有一个盘子准确停在 180度 (6点钟方向，即遮罩位置)
+            // 随机选一个盘子作为目标 (0 到 8)
+            const targetIndex = Math.floor(Math.random() * TOTAL_PLATES);
+            
+            // 计算为了让 targetIndex 到达 180度，转盘需要转到的绝对角度
+            // 公式推导：(baseAngle + wheelRotation) % 360 = 180
+            // 所以目标 wheelRotation = 180 - baseAngle
+            // 为了让它多转几圈，我们加上 360 * 圈数
+            
+            const currentMod = wheelRotation % 360;
+            const targetBaseAngle = platesRefs[targetIndex].baseAngle;
+            
+            // 计算目标相对于当前的增量
+            // 目标位置是底部(180度)
+            let distTo180 = 180 - targetBaseAngle; 
+            
+            // 确保是正向旋转 (顺时针)
+            // 加上整圈数 (比如转 5 圈)
+            const rounds = 5;
+            let nextRotation = wheelRotation - (wheelRotation % 360) + (rounds * 360) + distTo180;
+            
+            // 如果计算出的角度比当前小（回退了），就再加一圈
+            if (nextRotation <= wheelRotation) {
+                nextRotation += 360;
+            }
+
+            // --- B. 执行 CSS 动画 ---
+            wheelRotation = nextRotation;
+            wheelEl.style.transform = `rotate(${wheelRotation}deg)`;
+
+            // --- C. "摩天轮"修正 (保持文字直立) ---
+            // 转盘转了 wheelRotation 度
+            // 所有的盘子内容需要反向转 -wheelRotation 度
+            // 加上它们初始的 -baseAngle
+            platesRefs.forEach(plate => {
+                const totalCounterRot = -(wheelRotation + plate.baseAngle);
+                plate.content.style.transform = `rotate(${totalCounterRot}deg)`;
+            });
+
+            // --- D. 动画结束后的处理 ---
+            setTimeout(() => {
+                // 1. 此时 targetIndex 正好在 180度（遮罩下方）
+                const hiddenPlate = platesRefs[targetIndex].content;
+                
+                // 2. 偷偷换数据
+                const newDish = getRandomDish();
+                // 只要不是同一个菜就行
+                
+                hiddenPlate.querySelector('.emoji').innerText = newDish.icon;
+                hiddenPlate.querySelector('span').innerText = newDish.name;
+                
+                // 3. 标记为 New (添加样式类)
+                hiddenPlate.classList.remove('is-new');
+                void hiddenPlate.offsetWidth; // 触发重绘，重置动画
+                hiddenPlate.classList.add('is-new');
+
+                console.log(`已更新底部菜品 (Index ${targetIndex}): ${newDish.name}`);
+                
+                btn.disabled = false;
+                btn.innerText = "再次上菜";
+                
+            }, 3000); // 对应 CSS transition 时间
+        }
+
+        // 辅助：随机取菜
+        function getRandomDish() {
+            return MENU_ITEMS[Math.floor(Math.random() * MENU_ITEMS.length)];
+        }
+
+        // 启动
+        initWheel();
+
+    </script>
+</body>
+</html>

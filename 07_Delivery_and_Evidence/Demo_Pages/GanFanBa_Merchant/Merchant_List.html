@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>徐州餐饮店铺汇总</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 自定义样式 */
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .tag-bg {
+            background-color: #f0f9ff;
+            color: #0284c7;
+        }
+        /* 行政区标签样式 */
+        .district-tag {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        .yunlong {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+        .gulou {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .quanshan {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        /* 新增：店铺类型标签样式 */
+        .type-tag {
+            background-color: #fdf2f8;
+            color: #9f7aea;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 页面头部 -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4">
+            <h1 class="text-2xl font-bold text-gray-800">徐州餐饮店铺 <span class="text-sm font-normal text-gray-500">(共9家)</span></h1>
+            <p class="text-gray-500 mt-1">基于高德POI数据整理 | 包含云龙区、鼓楼区、泉山区</p>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 店铺卡片会通过JS动态生成 -->
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white mt-12 py-6 border-t border-gray-200">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            <p>© 2026 徐州餐饮信息展示 | 数据来源：高德地图POI</p>
+        </div>
+    </footer>
+
+    <script>
+        // 整合后的商家数据（原有6家 + 新增3家）
+        const shopData = [
+            // 原有数据（内容不变，此处省略，保持和你原代码一致）
+            {
+                "id": "B0FFKPTP14",
+                "parent": [],
+                "childtype": [],
+                "name": "八戒烧烤城(绿地领海店)",
+                "tag": "小龙虾,烤串,羊肉串,手擀面,羊肉,肉串",
+                "type": "餐饮服务;中餐厅;综合酒楼",
+                "typecode": "050101",
+                "biz_type": "diner",
+                "address": "REDACTED_ADDRESS",
+                "location": "117.282943,34.209545",
+                "tel": "REDACTED_PHONE",
+                "pcode": "320000",
+                "pname": "江苏省",
+                "citycode": "0516",
+                "cityname": "徐州市",
+                "adcode": "320303",
+                "adname": "云龙区",
+                "shopinfo": "1",
+                "gridcode": "5117225201",
+                "timestamp": "2025-12-28 22:50:47",
+                "indoor_map": "0",
+                "indoor_data": {
+                    "cpid": [],
+                    "floor": [],
+                    "truefloor": [],
+                    "cmsid": []
+                },
+                "groupbuy_num": "0",
+                "discount_num": "0",
+                "biz_ext": {
+                    "rating": "4.5",
+                    "cost": "57.00",
+                    "meal_ordering": "0"
+                },
+                "children": [],
+                "photos": [
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    }
+                ],
+                "building": [],
+                "atag": "小龙虾,烤串,羊肉串,手擀面,羊肉,肉串",
+                "keytag": "烤串"
+            },
+            {
+                "id": "B0LUBCGDV4",
+                "parent": "B0FFMGYP7L",
+                "childtype": "202",
+                "name": "龍歌自助小火锅(云龙招商花园店)",
+                "tag": "自助小火锅",
+                "type": "餐饮服务;中餐厅;火锅店",
+                "typecode": "050117",
+                "biz_type": "diner",
+                "address": "REDACTED_ADDRESS",
+                "location": "117.279528,34.208378",
+                "tel": "REDACTED_PHONE",
+                "pcode": "320000",
+                "pname": "江苏省",
+                "citycode": "0516",
+                "cityname": "徐州市",
+                "adcode": "320303",
+                "adname": "云龙区",
+                "shopinfo": "0",
+                "gridcode": "5117225201",
+                "timestamp": "2025-12-31 07:18:55",
+                "indoor_map": "0",
+                "indoor_data": {
+                    "cpid": [],
+                    "floor": [],
+                    "truefloor": [],
+                    "cmsid": []
+                },
+                "groupbuy_num": "0",
+                "discount_num": "0",
+                "biz_ext": {
+                    "rating": "4.5",
+                    "cost": "65.00",
+                    "meal_ordering": "0"
+                },
+                "children": [],
+                "photos": [
+                    {
+                        "title": [],
+                        "url": "http://store.is.autonavi.com/query_pic?id=st31a5fb39-4641-469c-94b6-953a1b8ac9be&user=search&operate=original"
+                    },
+                    {
+                        "title": [],
+                        "url": "https://store.is.autonavi.com/showpic/8125a46cfd6752d03f978a5796646e58"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    }
+                ],
+                "building": [],
+                "atag": "自助小火锅",
+                "keytag": "火锅"
+            },
+            {
+                "id": "B0H2O5DDT7",
+                "parent": "B0FFMGYP7L",
+                "childtype": "202",
+                "name": "必胜客(徐州花园城店)",
+                "tag": "黄金六两松板肉比萨,金枕榴莲多多比萨,法式红酒厚切慢煮牛肋排,海鲜至尊比萨,必胜硬核肉多多比萨,炙烤西冷牛排能量碗,意面,披萨,堂食,蛋挞",
+                "type": "餐饮服务;快餐厅;必胜客",
+                "typecode": "050303",
+                "biz_type": "diner",
+                "address": "REDACTED_ADDRESS",
+                "location": "117.278835,34.208180",
+                "tel": "REDACTED_PHONE",
+                "pcode": "320000",
+                "pname": "江苏省",
+                "citycode": "0516",
+                "cityname": "徐州市",
+                "adcode": "320303",
+                "adname": "云龙区",
+                "shopinfo": "0",
+                "gridcode": "5117224220",
+                "timestamp": "2025-12-28 12:50:05",
+                "indoor_map": "0",
+                "indoor_data": {
+                    "cpid": [],
+                    "floor": [],
+                    "truefloor": [],
+                    "cmsid": []
+                },
+                "groupbuy_num": "0",
+                "discount_num": "0",
+                "biz_ext": {
+                    "rating": "4.4",
+                    "cost": "50.00",
+                    "meal_ordering": "0"
+                },
+                "children": [],
+                "photos": [
+                    {
+                        "title": [],
+                        "url": "http://store.is.autonavi.com/showpic/032df6ead3dd33a54d8f6e9a907428d9"
+                    },
+                    {
+                        "title": [],
+                        "url": "http://store.is.autonavi.com/showpic/c2c6a44f64ec73b74decd82d4a9ae56e"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    }
+                ],
+                "building": [],
+                "atag": "黄金六两松板肉比萨,金枕榴莲多多比萨,法式红酒厚切慢煮牛肋排,海鲜至尊比萨,必胜硬核肉多多比萨,炙烤西冷牛排能量碗,意面,披萨,堂食,蛋挞",
+                "keytag": "披萨"
+            },
+            {
+                "id": "B0LRN5L5QM",
+                "parent": "B0FFIFSOEE",
+                "childtype": "320",
+                "name": "百味地锅鸡(九里店)",
+                "tag": "蒜爆鱼",
+                "type": "餐饮服务;中餐厅;中餐厅",
+                "typecode": "050100",
+                "biz_type": "diner",
+                "address": "REDACTED_ADDRESS",
+                "location": "117.156090,34.323149",
+                "tel": "REDACTED_PHONE",
+                "postcode": [],
+                "website": [],
+                "email": [],
+                "pcode": "320000",
+                "pname": "江苏省",
+                "citycode": "0516",
+                "cityname": "徐州市",
+                "adcode": "320302",
+                "adname": "鼓楼区",
+                "importance": [],
+                "shopid": [],
+                "shopinfo": "0",
+                "poiweight": [],
+                "gridcode": "5117318221",
+                "distance": [],
+                "navi_poiid": [],
+                "entr_location": "117.155936,34.323126",
+                "business_area": [],
+                "exit_location": [],
+                "match": "0",
+                "recommend": "0",
+                "timestamp": "2025-11-14 18:42:20",
+                "alias": [],
+                "indoor_map": "0",
+                "indoor_data": {
+                    "cpid": [],
+                    "floor": [],
+                    "truefloor": [],
+                    "cmsid": []
+                },
+                "groupbuy_num": "0",
+                "discount_num": "0",
+                "biz_ext": {
+                    "rating": "4.4",
+                    "cost": "38.00",
+                    "meal_ordering": "0"
+                },
+                "event": [],
+                "children": [],
+                "photos": [
+                    {
+                        "title": [],
+                        "url": "https://store.is.autonavi.com/showpic/40423bd3841c3a22fe87aaf255e5b0a1"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    }
+                ],
+                "building": [],
+                "atag": "蒜爆鱼",
+                "featured_reviews": [],
+                "favorite_num": [],
+                "space_num": [],
+                "featured_reviews_remake": [],
+                "keytag": "炖菜"
+            },
+            {
+                "id": "B0204038FQ",
+                "parent": "B020403DM8",
+                "childtype": "320",
+                "name": "老彭城地锅鸡(子房美景花园店)",
+                "tag": "辣椒炒干鱼,蛋黄玉米,蒜爆鲤鱼,手撕苞菜,干煸架梅,娃哈哈酸奶,大刀耳片,地锅凉粉鸡蛋,酸菜鱼,素炒山药,砂锅鸡血豆腐,毛白菜烧肉丸,干锅鱼尾,头等椰汁,大葱炒臭干,地锅鸡,糖醋里脊,特色菜,鸡肉,豆腐",
+                "type": "餐饮服务;中餐厅;中餐厅",
+                "typecode": "050100",
+                "biz_type": "diner",
+                "address": "REDACTED_ADDRESS",
+                "location": "117.210720,34.272691",
+                "tel": "REDACTED_PHONE",
+                "postcode": [],
+                "website": [],
+                "email": [],
+                "pcode": "320000",
+                "pname": "江苏省",
+                "citycode": "0516",
+                "cityname": "徐州市",
+                "adcode": "320303",
+                "adname": "云龙区",
+                "importance": [],
+                "shopid": [],
+                "shopinfo": "0",
+                "poiweight": [],
+                "gridcode": "5117312622",
+                "distance": [],
+                "navi_poiid": [],
+                "entr_location": "117.210856,34.272993",
+                "business_area": "大庆路",
+                "exit_location": [],
+                "match": "0",
+                "recommend": "0",
+                "timestamp": "2026-01-09 23:34:06",
+                "alias": "老彭城地锅鸡(总店)",
+                "indoor_map": "0",
+                "indoor_data": {
+                    "cpid": [],
+                    "floor": [],
+                    "truefloor": [],
+                    "cmsid": []
+                },
+                "groupbuy_num": "0",
+                "discount_num": "0",
+                "biz_ext": {
+                    "rating": "4.6",
+                    "cost": "65.00",
+                    "meal_ordering": "0"
+                },
+                "event": [],
+                "children": [],
+                "photos": [
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "https://store.is.autonavi.com/showpic/eae6b62a94c68b879f948aae69e68be0"
+                    }
+                ],
+                "building": [],
+                "atag": "辣椒炒干鱼,蛋黄玉米,蒜爆鲤鱼,手撕苞菜,干煸架梅,娃哈哈酸奶,大刀耳片,地锅凉粉鸡蛋,酸菜鱼,素炒山药,砂锅鸡血豆腐,毛白菜烧肉丸,干锅鱼尾,头等椰汁,大葱炒臭干,地锅鸡,糖醋里脊,特色菜,鸡肉,豆腐",
+                "featured_reviews": [],
+                "favorite_num": [],
+                "space_num": [],
+                "featured_reviews_remake": [],
+                "keytag": "中餐"
+            },
+            {
+                "id": "B0FFFEEAIX",
+                "parent": "B020402R23",
+                "childtype": "320",
+                "name": "彭城印象酒店",
+                "tag": "辣子鸡,全家福煲,剁椒鱼头,北京烤鸭,干煸四季豆,椒盐小土豆,海鲜蒸蛋,清蒸白丝鱼,炒韭菜,特色臭桂鱼,白卤牛脊骨,糖醋鱼,糯米排骨,脆皮鸡,菠萝饭,烤鸭,大虾,家常菜,特色菜",
+                "type": "餐饮服务;中餐厅;中餐厅",
+                "typecode": "050100",
+                "biz_type": "diner",
+                "address": "REDACTED_ADDRESS",
+                "location": "117.215962,34.266686",
+                "tel": "REDACTED_PHONE",
+                "postcode": [],
+                "website": [],
+                "email": [],
+                "pcode": "320000",
+                "pname": "江苏省",
+                "citycode": "0516",
+                "cityname": "徐州市",
+                "adcode": "320303",
+                "adname": "云龙区",
+                "importance": [],
+                "shopid": [],
+                "shopinfo": "0",
+                "poiweight": [],
+                "gridcode": "5117312700",
+                "distance": [],
+                "navi_poiid": "I50F021026_55057",
+                "entr_location": "117.215595,34.266606",
+                "business_area": [],
+                "exit_location": [],
+                "match": "0",
+                "recommend": "0",
+                "timestamp": "2026-01-10 00:17:31",
+                "alias": [],
+                "indoor_map": "0",
+                "indoor_data": {
+                    "cpid": [],
+                    "floor": [],
+                    "truefloor": [],
+                    "cmsid": []
+                },
+                "groupbuy_num": "0",
+                "discount_num": "0",
+                "biz_ext": {
+                    "rating": "4.5",
+                    "cost": "80.00",
+                    "meal_ordering": "0"
+                },
+                "event": [],
+                "children": [],
+                "photos": [
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    }
+                ],
+                "building": [],
+                "atag": "辣子鸡,全家福煲,剁椒鱼头,北京烤鸭,干煸四季豆,椒盐小土豆,海鲜蒸蛋,清蒸白丝鱼,炒韭菜,特色臭桂鱼,白卤牛脊骨,糖醋鱼,糯米排骨,脆皮鸡,菠萝饭,烤鸭,大虾,家常菜,特色菜",
+                "featured_reviews": [],
+                "favorite_num": [],
+                "space_num": [],
+                "featured_reviews_remake": [],
+                "keytag": "中餐"
+            },
+            {
+                "id": "B020401LYF",
+                "parent": [],
+                "childtype": [],
+                "name": "老家地锅一店(徐州仅两家:煤建路店)",
+                "tag": "地锅茄子,螺丝肉,地锅老豆腐,酱牛肉,干锅菜花,老家凉粉,地锅鸡,洛馍卷洛馍,香菜馓子,地锅杂鱼,地锅昂刺,地锅鱼头,千刀肉,炒鸭肠,地锅排骨,鸡肉",
+                "type": "餐饮服务;中餐厅;中餐厅",
+                "typecode": "050100",
+                "biz_type": "diner",
+                "address": "REDACTED_ADDRESS",
+                "location": "117.167168,34.250803",
+                "tel": "REDACTED_PHONE",
+                "postcode": [],
+                "website": [],
+                "email": [],
+                "pcode": "320000",
+                "pname": "江苏省",
+                "citycode": "0516",
+                "cityname": "徐州市",
+                "adcode": "320311",
+                "adname": "泉山区",
+                "importance": [],
+                "shopid": [],
+                "shopinfo": "0",
+                "poiweight": [],
+                "gridcode": "5117310301",
+                "distance": [],
+                "navi_poiid": "I50F021026_31881",
+                "entr_location": "117.167245,34.250859",
+                "business_area": "吴庄",
+                "exit_location": [],
+                "match": "0",
+                "recommend": "0",
+                "timestamp": "2026-01-05 14:32:05",
+                "alias": [],
+                "indoor_map": "0",
+                "indoor_data": {
+                    "cpid": [],
+                    "floor": [],
+                    "truefloor": [],
+                    "cmsid": []
+                },
+                "groupbuy_num": "0",
+                "discount_num": "0",
+                "biz_ext": {
+                    "rating": "4.7",
+                    "cost": "59.00",
+                    "meal_ordering": "0"
+                },
+                "event": [],
+                "children": [],
+                "photos": [
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    }
+                ],
+                "building": [],
+                "atag": "地锅鸡,地锅茄子,螺丝肉,地锅老豆腐,酱牛肉,干锅菜花,老家凉粉,洛馍卷洛馍,香菜馓子,地锅杂鱼,地锅昂刺,地锅鱼头,千刀肉,炒鸭肠,地锅排骨,鸡肉",
+                "featured_reviews": [],
+                "favorite_num": [],
+                "space_num": [],
+                "featured_reviews_remake": [],
+                "keytag": "中餐"
+            },
+            {
+                "id": "B0KKN53YXU",
+                "parent": "B020404VQ0",
+                "childtype": "320",
+                "name": "小两口地锅鸡",
+                "tag": "地锅鸡",
+                "type": "餐饮服务;中餐厅;中餐厅",
+                "typecode": "050100",
+                "biz_type": "diner",
+                "address": "REDACTED_ADDRESS",
+                "location": "117.190996,34.265258",
+                "tel": "REDACTED_PHONE",
+                "postcode": [],
+                "website": [],
+                "email": [],
+                "pcode": "320000",
+                "pname": "江苏省",
+                "citycode": "0516",
+                "cityname": "徐州市",
+                "adcode": "320302",
+                "adname": "鼓楼区",
+                "importance": [],
+                "shopid": [],
+                "shopinfo": "1",
+                "poiweight": [],
+                "gridcode": "5117311520",
+                "distance": [],
+                "navi_poiid": [],
+                "entr_location": "117.190863,34.265149",
+                "business_area": "彭城广场/彭城1号",
+                "exit_location": [],
+                "match": "0",
+                "recommend": "0",
+                "timestamp": "2025-12-30 15:13:03",
+                "alias": [],
+                "indoor_map": "0",
+                "indoor_data": {
+                    "cpid": [],
+                    "floor": [],
+                    "truefloor": [],
+                    "cmsid": []
+                },
+                "groupbuy_num": "0",
+                "discount_num": "0",
+                "biz_ext": {
+                    "rating": "4.7",
+                    "cost": "65.00",
+                    "meal_ordering": "0"
+                },
+                "event": [],
+                "children": [],
+                "photos": [
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    }
+                ],
+                "building": [],
+                "atag": "地锅鸡",
+                "featured_reviews": [],
+                "favorite_num": [],
+                "space_num": [],
+                "featured_reviews_remake": [],
+                "keytag": "中餐"
+            },
+            {
+                "id": "B0FFGTC7GM",
+                "parent": [],
+                "childtype": [],
+                "name": "忆外婆地锅鸡(吴庄店)",
+                "tag": "老味酸菜鱼,毛血旺,徐州蒜爆鲤鱼,地锅羊排,藤椒鸡,三色虾仁,外婆家老鹅,地锅鸡,曼谷菠萝,排骨三鲜,砂锅土豆牛肉,地锅烧排骨,砂锅凤爪,砂锅红烧肉,五彩花生,特色烧羊肉,铁板豆腐,徐州米线,双人餐,家常菜,鸡肉",
+                "type": "餐饮服务;中餐厅;综合酒楼",
+                "typecode": "050101",
+                "biz_type": "diner",
+                "address": "REDACTED_ADDRESS",
+                "location": "117.167384,34.251902",
+                "tel": "REDACTED_PHONE",
+                "postcode": [],
+                "website": [],
+                "email": [],
+                "pcode": "320000",
+                "pname": "江苏省",
+                "citycode": "0516",
+                "cityname": "徐州市",
+                "adcode": "320311",
+                "adname": "泉山区",
+                "importance": [],
+                "shopid": [],
+                "shopinfo": "0",
+                "poiweight": [],
+                "gridcode": "5117310301",
+                "distance": [],
+                "navi_poiid": "I50F021026_124306",
+                "entr_location": [],
+                "business_area": "吴庄",
+                "exit_location": [],
+                "match": "0",
+                "recommend": "0",
+                "timestamp": "2026-01-02 15:39:19",
+                "alias": [],
+                "indoor_map": "0",
+                "indoor_data": {
+                    "cpid": [],
+                    "floor": [],
+                    "truefloor": [],
+                    "cmsid": []
+                },
+                "groupbuy_num": "0",
+                "discount_num": "0",
+                "biz_ext": {
+                    "rating": "4.8",
+                    "cost": "43.00",
+                    "meal_ordering": "0"
+                },
+                "event": [],
+                "children": [],
+                "photos": [
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    },
+                    {
+                        "title": [],
+                        "url": "REDACTED_IMAGE_URL"
+                    }
+                ],
+                "building": [],
+                "atag": "地锅鸡,老味酸菜鱼,毛血旺,徐州蒜爆鲤鱼,地锅羊排,藤椒鸡,三色虾仁,外婆家老鹅,曼谷菠萝,排骨三鲜,砂锅土豆牛肉,地锅烧排骨,砂锅凤爪,砂锅红烧肉,五彩花生,特色烧羊肉,铁板豆腐,徐州米线,双人餐,家常菜,鸡肉",
+                "featured_reviews": [],
+                "favorite_num": [],
+                "space_num": [],
+                "featured_reviews_remake": [],
+                "keytag": "江浙菜"
+            }
+        ];
+
+        // 获取主容器
+        const container = document.querySelector('.grid');
+
+        // 生成店铺卡片
+        function renderShops() {
+            shopData.forEach(shop => {
+                // 创建卡片元素
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg overflow-hidden card-shadow hover:shadow-lg transition-shadow duration-300';
+
+                // 处理标签数据
+                const tags = shop.tag.split(',').slice(0, 3); // 只显示前3个标签
+                const tagHtml = tags.map(tag => `<span class="inline-block px-2 py-1 text-xs rounded-full tag-bg mr-1 mb-1">${tag}</span>`).join('');
+
+                // 处理评分星星
+                const rating = parseFloat(shop.biz_ext.rating);
+                const fullStars = Math.floor(rating);
+                const halfStar = rating % 1 >= 0.5 ? 1 : 0;
+                const emptyStars = 5 - fullStars - halfStar;
+                
+                let starHtml = '';
+                // 满星
+                for(let i=0; i<fullStars; i++) {
+                    starHtml += '<i class="fas fa-star text-yellow-400"></i>';
+                }
+                // 半星
+                if(halfStar) {
+                    starHtml += '<i class="fas fa-star-half-alt text-yellow-400"></i>';
+                }
+                // 空星
+                for(let i=0; i<emptyStars; i++) {
+                    starHtml += '<i class="far fa-star text-yellow-400"></i>';
+                }
+
+                // 处理行政区标签
+                let districtClass = '';
+                if (shop.adname === "云龙区") {
+                    districtClass = "yunlong";
+                } else if (shop.adname === "鼓楼区") {
+                    districtClass = "gulou";
+                } else if (shop.adname === "泉山区") {
+                    districtClass = "quanshan";
+                }
+                let districtHtml = `<span class="district-tag ${districtClass}">${shop.adname}</span>`;
+
+                // 处理多个电话号码的情况
+                let telText = shop.tel;
+                if (telText && telText.includes(';')) {
+                    telText = telText.split(';').join(' / ');
+                }
+
+                // 新增：处理店铺类型（提取type字段最后一部分）
+                const typeParts = shop.type.split(';');
+                const shopType = typeParts[typeParts.length - 1] || '未知类型';
+                const typeHtml = `<span class="type-tag">${shopType}</span>`;
+
+                // 新增：处理店铺别名
+                const aliasHtml = shop.alias && shop.alias.length > 0 
+                    ? `<div class="flex items-center text-xs text-gray-500 mt-1">
+                        <i class="fas fa-tag mr-1 text-blue-400"></i>
+                        <span>别名：${shop.alias}</span>
+                      </div>` 
+                    : '';
+
+                // 新增：处理数据更新时间
+                const updateTime = shop.timestamp || '未知时间';
+                
+                // 新增：处理商圈信息
+                const businessAreaHtml = shop.business_area && shop.business_area.length > 0
+                    ? `<div class="flex items-center text-xs text-gray-500 mt-1">
+                        <i class="fas fa-map mr-1 text-purple-400"></i>
+                        <span>商圈：${shop.business_area}</span>
+                      </div>`
+                    : '';
+
+                // 卡片内容
+                card.innerHTML = `
+                    <!-- 店铺图片 -->
+                    <div class="h-48 overflow-hidden">
+                        <img src="${shop.photos[0].url}" alt="${shop.name}" class="w-full h-full object-cover transition-transform duration-500 hover:scale-105">
+                    </div>
+                    <!-- 店铺信息 -->
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-lg font-semibold text-gray-800">${shop.name}</h2>
+                            <div class="flex items-center gap-2">
+                                ${districtHtml}
+                                ${typeHtml}
+                            </div>
+                        </div>
+                        
+                        <!-- 评分和人均 -->
+                        <div class="flex items-center mb-2">
+                            <div class="flex mr-3">${starHtml}</div>
+                            <span class="text-sm text-gray-600">${shop.biz_ext.rating}</span>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <span class="text-sm text-gray-600">人均 ¥${shop.biz_ext.cost}</span>
+                        </div>
+                        
+                        <!-- 标签 -->
+                        <div class="mb-2">${tagHtml}</div>
+                        
+                        <!-- 地址 -->
+                        <div class="flex items-center text-sm text-gray-500 mb-1">
+                            <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                            <span class="truncate">${shop.address}</span>
+                        </div>
+                        
+                        <!-- 电话 -->
+                        <div class="flex items-center text-sm text-gray-500 mb-1">
+                            <i class="fas fa-phone-alt mr-2 text-green-500"></i>
+                            <span>${telText || '暂无电话'}</span>
+                        </div>
+                        
+                        <!-- 新增：别名、商圈信息 -->
+                        ${aliasHtml}
+                        ${businessAreaHtml}
+                        
+                        <!-- 新增：数据更新时间（底部小字） -->
+                        <div class="flex items-center text-xs text-gray-400 mt-3 pt-2 border-t border-gray-100">
+                            <i class="fas fa-history mr-1"></i>
+                            <span>数据更新：${updateTime}</span>
+                        </div>
+                    </div>
+                `;
+
+                // 添加到容器
+                container.appendChild(card);
+            });
+        }
+
+        // 页面加载完成后渲染
+        window.addEventListener('DOMContentLoaded', renderShops);
+    </script>
+</body>
+</html>
