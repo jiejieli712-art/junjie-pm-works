@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aurora Reactor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7f0df;
+      --muted: rgba(247, 240, 223, .66);
+      --faint: rgba(247, 240, 223, .14);
+      --glass: rgba(9, 12, 15, .54);
+      --cyan: #30f5ff;
+      --acid: #b6ff3a;
+      --ember: #ffb02e;
+      --hot: #ff3d77;
+      --line: rgba(247, 240, 223, .22);
+      font-family: "Bahnschrift", "DIN Condensed", "Aptos", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #030304;
+      color: var(--ink);
+    }
+
+    body {
+      min-width: 320px;
+    }
+
+    .viewport {
+      position: relative;
+      min-height: 100%;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(255, 61, 119, .22), transparent 26rem),
+        radial-gradient(circle at 84% 18%, rgba(48, 245, 255, .18), transparent 28rem),
+        radial-gradient(circle at 60% 80%, rgba(182, 255, 58, .1), transparent 30rem),
+        #030304;
+    }
+
+    canvas#reactor {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 0;
+    }
+
+    .grain,
+    .scanlines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .grain {
+      opacity: .18;
+      background-image:
+        linear-gradient(115deg, transparent 0 34%, rgba(255, 255, 255, .045) 35%, transparent 36%),
+        radial-gradient(circle at 20% 40%, rgba(255, 255, 255, .08) 0 1px, transparent 1px);
+      background-size: 13px 17px, 19px 23px;
+      mix-blend-mode: overlay;
+    }
+
+    .scanlines {
+      opacity: .16;
+      background: repeating-linear-gradient(180deg, transparent 0 8px, rgba(255, 255, 255, .08) 9px, transparent 10px);
+    }
+
+    .html-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      padding: clamp(18px, 3vw, 42px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto 1fr auto;
+      gap: clamp(18px, 3vw, 36px);
+    }
+
+    .topbar,
+    .dock,
+    .console,
+    .ticker {
+      pointer-events: auto;
+      backdrop-filter: blur(14px) saturate(1.18);
+      background: linear-gradient(135deg, rgba(7, 11, 12, .78), rgba(16, 18, 20, .38));
+      border: 1px solid var(--line);
+      box-shadow: 0 22px 80px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .08);
+    }
+
+    .topbar {
+      width: min(100%, 1180px);
+      justify-self: center;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 58px;
+      padding: 10px 12px 10px 18px;
+      border-radius: 8px;
+    }
+
+    .mark {
+      display: inline-grid;
+      grid-template-columns: 34px auto;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .sigil {
+      width: 34px;
+      aspect-ratio: 1;
+      position: relative;
+      border: 1px solid rgba(48, 245, 255, .55);
+      transform: rotate(45deg);
+      background:
+        linear-gradient(90deg, transparent 44%, rgba(182, 255, 58, .55) 45% 55%, transparent 56%),
+        linear-gradient(0deg, transparent 44%, rgba(255, 61, 119, .65) 45% 55%, transparent 56%),
+        rgba(48, 245, 255, .08);
+      box-shadow: 0 0 28px rgba(48, 245, 255, .45);
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 12px;
+      letter-spacing: .26em;
+      font-weight: 800;
+      white-space: nowrap;
+      color: var(--acid);
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .08em;
+      white-space: nowrap;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .08em;
+      white-space: nowrap;
+    }
+
+    .pulse {
+      width: 10px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--acid);
+      box-shadow: 0 0 18px var(--acid);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(.74); opacity: .55; }
+      45% { transform: scale(1.15); opacity: 1; }
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(247, 240, 223, .22);
+      background: rgba(247, 240, 223, .08);
+      color: var(--ink);
+      height: 38px;
+      min-width: 38px;
+      border-radius: 6px;
+      font: inherit;
+      font-size: 12px;
+      letter-spacing: .08em;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(48, 245, 255, .8);
+      background: rgba(48, 245, 255, .14);
+      box-shadow: 0 0 24px rgba(48, 245, 255, .22);
+    }
+
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .stage {
+      position: relative;
+      width: min(100%, 1180px);
+      justify-self: center;
+      align-self: center;
+      min-height: min(62vh, 620px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 330px);
+      align-items: end;
+      gap: clamp(18px, 4vw, 60px);
+      pointer-events: none;
+    }
+
+    .headline {
+      align-self: center;
+      max-width: 720px;
+      pointer-events: none;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Impact", "Bahnschrift Condensed", "Arial Narrow", sans-serif;
+      font-size: clamp(60px, 13vw, 172px);
+      font-weight: 900;
+      line-height: .76;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      text-wrap: balance;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(247, 240, 223, .64);
+      text-shadow:
+        0 0 18px rgba(48, 245, 255, .26),
+        0 0 54px rgba(255, 61, 119, .18);
+    }
+
+    .headline p {
+      width: min(540px, 100%);
+      margin: 24px 0 0;
+      color: rgba(247, 240, 223, .76);
+      font-size: clamp(16px, 2vw, 21px);
+      line-height: 1.45;
+    }
+
+    .console {
+      align-self: end;
+      padding: 18px;
+      border-radius: 8px;
+      display: grid;
+      gap: 16px;
+      pointer-events: auto;
+    }
+
+    .readout {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+      padding-bottom: 13px;
+      border-bottom: 1px solid var(--faint);
+    }
+
+    .readout span {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    .readout strong {
+      font-size: clamp(26px, 5vw, 48px);
+      line-height: .9;
+      color: var(--acid);
+      text-shadow: 0 0 24px rgba(182, 255, 58, .35);
+    }
+
+    .meter {
+      display: grid;
+      gap: 8px;
+    }
+
+    .meter label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      min-width: 0;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
+    .spectrum {
+      height: 64px;
+      display: grid;
+      grid-template-columns: repeat(18, 1fr);
+      gap: 4px;
+      align-items: end;
+      border: 1px solid var(--faint);
+      padding: 7px;
+      background: rgba(0, 0, 0, .28);
+    }
+
+    .spectrum i {
+      display: block;
+      min-height: 10px;
+      background: linear-gradient(180deg, var(--cyan), var(--acid) 46%, var(--ember));
+      box-shadow: 0 0 14px rgba(48, 245, 255, .28);
+      transform-origin: bottom;
+    }
+
+    .dock {
+      width: min(100%, 1180px);
+      justify-self: center;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      padding: 1px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .tile {
+      min-height: 72px;
+      padding: 14px;
+      background: rgba(255, 255, 255, .035);
+      display: grid;
+      align-content: space-between;
+      gap: 10px;
+    }
+
+    .tile span {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .tile strong {
+      font-size: clamp(15px, 2vw, 22px);
+      line-height: 1;
+      color: var(--ink);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 6;
+      width: min(560px, calc(100vw - 36px));
+      transform: translate(-50%, 18px);
+      opacity: 0;
+      pointer-events: none;
+      padding: 12px 14px;
+      border: 1px solid rgba(182, 255, 58, .36);
+      background: rgba(5, 8, 8, .86);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.4;
+      border-radius: 8px;
+      box-shadow: 0 18px 80px rgba(0, 0, 0, .45);
+      transition: opacity .24s ease, transform .24s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .headline p {
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 820px) {
+      .html-layer {
+        padding: 14px;
+      }
+
+      .topbar {
+        width: calc(100vw - 28px);
+        min-height: 54px;
+        overflow: hidden;
+        backdrop-filter: blur(8px) saturate(1.08);
+      }
+
+      .brand span,
+      .status {
+        display: none;
+      }
+
+      .stage {
+        width: calc(100vw - 28px);
+        min-height: 58vh;
+        grid-template-columns: 1fr;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .headline p {
+        margin-top: 16px;
+        font-size: 15px;
+        max-width: min(330px, calc(100vw - 48px));
+      }
+
+      .console {
+        width: min(100%, calc(100vw - 56px));
+        max-width: none;
+        justify-self: center;
+        min-width: 0;
+        backdrop-filter: blur(8px) saturate(1.08);
+      }
+
+      .dock {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .tile {
+        min-height: 62px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .actions button:not(.icon-button) {
+        display: none;
+      }
+
+      .brand strong {
+        font-size: 10px;
+        letter-spacing: .2em;
+      }
+
+      .console {
+        padding: 14px;
+      }
+
+      .stage {
+        gap: 14px;
+      }
+
+      .dock {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pulse {
+        animation: none;
+      }
+
+      button {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="viewport" id="app">
+    <canvas id="reactor" aria-hidden="true" layoutsubtree>
+      <div id="native-html-source">AURORA REACTOR</div>
+    </canvas>
+    <div class="grain"></div>
+    <div class="scanlines"></div>
+
+    <section class="html-layer" aria-label="Aurora Reactor console">
+      <header class="topbar">
+        <div class="mark">
+          <i class="sigil" aria-hidden="true"></i>
+          <div class="brand">
+            <strong>AURORA REACTOR</strong>
+            <span id="bridgeMode">DOM OVERLAY</span>
+          </div>
+        </div>
+        <div class="status"><i class="pulse" aria-hidden="true"></i><span id="statusText">FIELD LOCKED</span></div>
+        <div class="actions">
+          <button class="icon-button" id="shuffle" type="button" aria-label="Recalibrate">↻</button>
+          <button id="snapshot" type="button">CAPTURE</button>
+        </div>
+      </header>
+
+      <div class="stage">
+        <div class="headline">
+          <h1>Aurora<br>Reactor</h1>
+          <p>能量场正在把语义化 HTML 面板投射到一张实时 Canvas 画布上。</p>
+        </div>
+
+        <aside class="console" aria-label="Reactor controls">
+          <div class="readout">
+            <span>Core output</span>
+            <strong id="coreValue">87%</strong>
+          </div>
+          <div class="meter">
+            <label for="intensity">Intensity <span id="intensityValue">87</span></label>
+            <input id="intensity" type="range" min="24" max="100" value="87">
+          </div>
+          <div class="meter">
+            <label for="density">Particle flux <span id="densityValue">64</span></label>
+            <input id="density" type="range" min="20" max="100" value="64">
+          </div>
+          <div class="spectrum" id="spectrum" aria-hidden="true"></div>
+        </aside>
+      </div>
+
+      <footer class="dock" aria-label="Reactor telemetry">
+        <div class="tile"><span>Canvas grid</span><strong id="gridStat">0 x 0</strong></div>
+        <div class="tile"><span>Readback</span><strong id="readbackStat">PENDING</strong></div>
+        <div class="tile"><span>Device scale</span><strong id="scaleStat">1.00</strong></div>
+        <div class="tile"><span>Frame phase</span><strong id="phaseStat">0.00</strong></div>
+      </footer>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const canvas = document.getElementById("reactor");
+    const ctx = canvas.getContext("2d", { alpha: true });
+    const app = document.getElementById("app");
+    const intensity = document.getElementById("intensity");
+    const density = document.getElementById("density");
+    const intensityValue = document.getElementById("intensityValue");
+    const densityValue = document.getElementById("densityValue");
+    const coreValue = document.getElementById("coreValue");
+    const gridStat = document.getElementById("gridStat");
+    const readbackStat = document.getElementById("readbackStat");
+    const scaleStat = document.getElementById("scaleStat");
+    const phaseStat = document.getElementById("phaseStat");
+    const statusText = document.getElementById("statusText");
+    const bridgeMode = document.getElementById("bridgeMode");
+    const spectrum = document.getElementById("spectrum");
+    const toast = document.getElementById("toast");
+    const nativeHtmlSource = document.getElementById("native-html-source");
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const state = {
+      width: 1,
+      height: 1,
+      dpr: 1,
+      time: 0,
+      phase: 0,
+      pointerX: .5,
+      pointerY: .5,
+      particles: [],
+      sparks: [],
+      hueShift: 0,
+      lastFrame: 0,
+      frameCount: 0,
+      isCompact: false
+    };
+    const particleColors = ["48,245,255", "182,255,58", "255,176,46", "255,61,119"];
+
+    function supportsHtmlInCanvas() {
+      return Boolean(
+        "layoutSubtree" in canvas &&
+        "requestPaint" in canvas &&
+        typeof canvas.captureElementImage === "function" &&
+        "drawElementImage" in CanvasRenderingContext2D.prototype
+      );
+    }
+
+    function setupNativeBridge() {
+      if (!supportsHtmlInCanvas()) {
+        bridgeMode.textContent = "DOM OVERLAY";
+        return;
+      }
+
+      bridgeMode.textContent = "NATIVE BRIDGE";
+      canvas.layoutSubtree = true;
+      canvas.addEventListener("paint", () => {
+        try {
+          const transform = ctx.drawElementImage(nativeHtmlSource, 22, 22);
+          nativeHtmlSource.style.transform = transform.toString();
+        } catch {
+          bridgeMode.textContent = "DOM OVERLAY";
+        }
+      });
+      canvas.requestPaint();
+    }
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      state.isCompact = rect.width < 760;
+      const rawDpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(rawDpr, state.isCompact ? 1.08 : 1.35);
+      const width = Math.max(1, Math.round(rect.width * dpr));
+      const height = Math.max(1, Math.round(rect.height * dpr));
+
+      state.dpr = dpr;
+      state.width = rect.width;
+      state.height = rect.height;
+
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seedParticles();
+        smokeReadback();
+      }
+
+      gridStat.textContent = `${width} x ${height}`;
+      scaleStat.textContent = dpr.toFixed(2);
+    }
+
+    function seedParticles() {
+      const multiplier = state.isCompact ? 1.15 : 2.15;
+      const maxCount = state.isCompact ? 92 : 180;
+      const count = Math.min(maxCount, Math.round(Number(density.value) * multiplier));
+      state.particles = Array.from({ length: count }, (_, index) => ({
+        r: Math.random() * Math.min(state.width, state.height) * .48,
+        a: Math.random() * Math.PI * 2,
+        speed: .0012 + Math.random() * .0028,
+        size: .7 + Math.random() * 2.8,
+        band: index % 4,
+        drift: Math.random() * 100
+      }));
+    }
+
+    function addSpark(x, y, amount = 34) {
+      for (let i = 0; i < amount; i += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.4 + Math.random() * 6;
+        state.sparks.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          decay: .012 + Math.random() * .024,
+          color: Math.random() > .55 ? "#30f5ff" : Math.random() > .4 ? "#b6ff3a" : "#ff3d77"
+        });
+      }
+    }
+
+    function drawReactor(cx, cy, radius, power) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(state.phase * .22);
+
+      const glow = ctx.createRadialGradient(0, 0, radius * .05, 0, 0, radius * 1.25);
+      glow.addColorStop(0, `rgba(247,240,223,${.18 * power})`);
+      glow.addColorStop(.24, `rgba(48,245,255,${.16 * power})`);
+      glow.addColorStop(.52, `rgba(255,61,119,${.12 * power})`);
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 1.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (let ring = 0; ring < 8; ring += 1) {
+        const rr = radius * (.28 + ring * .105);
+        const start = state.phase * (.55 + ring * .03) + ring * .72;
+        ctx.lineWidth = ring % 3 === 0 ? 2.4 : 1;
+        ctx.strokeStyle = ring % 3 === 0
+          ? `rgba(48,245,255,${.32 + .18 * power})`
+          : ring % 3 === 1
+            ? `rgba(182,255,58,${.22 + .14 * power})`
+            : `rgba(255,176,46,${.2 + .12 * power})`;
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, start, start + Math.PI * (1.08 + Math.sin(state.phase + ring) * .32));
+        ctx.stroke();
+      }
+
+      for (let spoke = 0; spoke < 36; spoke += 1) {
+        const angle = (spoke / 36) * Math.PI * 2 + state.phase * (spoke % 2 ? -.35 : .2);
+        const inner = radius * (.2 + Math.sin(state.phase + spoke) * .02);
+        const outer = radius * (.92 + Math.cos(state.phase * 1.3 + spoke) * .08);
+        const alpha = .08 + ((spoke + Math.floor(state.phase * 8)) % 9 === 0 ? .32 : 0);
+        ctx.strokeStyle = `rgba(247,240,223,${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+        ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+        ctx.stroke();
+      }
+
+      ctx.shadowColor = "#30f5ff";
+      ctx.shadowBlur = state.isCompact ? 18 + power * 22 : 24 + power * 36;
+      ctx.fillStyle = `rgba(247,240,223,${.82 + .12 * power})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * (.11 + Math.sin(state.phase * 2) * .012), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawParticles(cx, cy, radius, power) {
+      for (let index = 0; index < state.particles.length; index += 1) {
+        const p = state.particles[index];
+        p.a += p.speed * (18 + Number(intensity.value) * .22);
+        const wave = Math.sin(state.phase * 1.6 + p.drift) * radius * .035;
+        const x = cx + Math.cos(p.a) * (p.r + wave) + (state.pointerX - .5) * 34 * (p.band + 1);
+        const y = cy + Math.sin(p.a * (1 + p.band * .015)) * (p.r * .56 + wave) + (state.pointerY - .5) * 34 * (p.band + 1);
+        const color = particleColors[p.band];
+        ctx.fillStyle = `rgba(${color},${.25 + .45 * power})`;
+        if (!state.isCompact && index % 5 === 0) {
+          ctx.shadowColor = `rgb(${color})`;
+          ctx.shadowBlur = 5 + p.size * 2;
+        } else {
+          ctx.shadowBlur = 0;
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, p.size * (.65 + power * .55), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    function drawSparks() {
+      if (state.sparks.length > 120) {
+        state.sparks.splice(0, state.sparks.length - 120);
+      }
+      for (let i = state.sparks.length - 1; i >= 0; i -= 1) {
+        const s = state.sparks[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vx *= .982;
+        s.vy *= .982;
+        s.life -= s.decay;
+        if (s.life <= 0) {
+          state.sparks.splice(i, 1);
+          continue;
+        }
+        ctx.strokeStyle = s.color;
+        ctx.globalAlpha = Math.max(0, s.life);
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x - s.vx * 4, s.y - s.vy * 4);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawGrid(power) {
+      const gap = state.isCompact ? 72 : 56;
+      const ox = (state.phase * 8) % gap;
+      ctx.save();
+      ctx.globalAlpha = .11 + power * .08;
+      ctx.strokeStyle = "#f7f0df";
+      ctx.lineWidth = 1;
+      for (let x = -gap + ox; x < state.width + gap; x += gap) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x + state.width * .08, state.height);
+        ctx.stroke();
+      }
+      for (let y = -gap; y < state.height + gap; y += gap) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(state.width, y + Math.sin(state.phase + y * .01) * 14);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function tick(now) {
+      const targetInterval = state.isCompact ? 1000 / 30 : 1000 / 40;
+      if (now - state.lastFrame < targetInterval) {
+        requestAnimationFrame(tick);
+        return;
+      }
+      state.lastFrame = now;
+      state.frameCount += 1;
+      state.time = now * .001;
+      if (!prefersReducedMotion) {
+        state.phase += .012 + Number(intensity.value) * .00012;
+      }
+
+      const power = Number(intensity.value) / 100;
+      const cx = state.width * (.52 + (state.pointerX - .5) * .055);
+      const cy = state.height * (.48 + (state.pointerY - .5) * .045);
+      const radius = Math.min(state.width, state.height) * (.28 + power * .08);
+
+      ctx.clearRect(0, 0, state.width, state.height);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "rgba(3,3,4,.78)";
+      ctx.fillRect(0, 0, state.width, state.height);
+      drawGrid(power);
+      ctx.globalCompositeOperation = "lighter";
+      drawParticles(cx, cy, radius, power);
+      drawReactor(cx, cy, radius, power);
+      drawSparks();
+      ctx.globalCompositeOperation = "source-over";
+
+      const core = Math.round(Number(intensity.value) + Math.sin(state.phase * 2.1) * 3);
+      intensityValue.textContent = intensity.value;
+      densityValue.textContent = density.value;
+      coreValue.textContent = `${Math.max(0, Math.min(100, core))}%`;
+      phaseStat.textContent = (state.phase % 10).toFixed(2);
+      if (state.frameCount % 3 === 0) {
+        updateSpectrum(power);
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    function updateSpectrum(power) {
+      [...spectrum.children].forEach((bar, index) => {
+        const wave = Math.sin(state.phase * 2.6 + index * .78) * .5 + .5;
+        const spike = Math.cos(state.phase * 1.4 + index * 1.9) * .5 + .5;
+        const height = 18 + (wave * 34 + spike * 16) * power;
+        bar.style.height = `${height}px`;
+      });
+    }
+
+    function smokeReadback() {
+      try {
+        ctx.getImageData(0, 0, 1, 1);
+        readbackStat.textContent = "CLEAN";
+        canvas.toBlob((blob) => {
+          readbackStat.textContent = blob ? "CLEAN" : "NULL";
+        });
+      } catch {
+        readbackStat.textContent = "TAINTED";
+      }
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+
+    function downloadSnapshot() {
+      smokeReadback();
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          showToast("Canvas export blocked.");
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "aurora-reactor.png";
+        link.click();
+        URL.revokeObjectURL(url);
+        showToast("aurora-reactor.png");
+      });
+    }
+
+    function recalibrate() {
+      state.hueShift = (state.hueShift + 37) % 360;
+      app.style.filter = `hue-rotate(${state.hueShift}deg)`;
+      addSpark(state.width * .5, state.height * .48, state.isCompact ? 30 : 52);
+      statusText.textContent = "RECALIBRATED";
+      setTimeout(() => {
+        statusText.textContent = "FIELD LOCKED";
+      }, 1200);
+    }
+
+    for (let i = 0; i < 18; i += 1) {
+      spectrum.appendChild(document.createElement("i"));
+    }
+
+    window.addEventListener("resize", resize);
+    canvas.addEventListener("pointermove", (event) => {
+      state.pointerX = event.clientX / Math.max(1, window.innerWidth);
+      state.pointerY = event.clientY / Math.max(1, window.innerHeight);
+    });
+    canvas.addEventListener("pointerdown", (event) => {
+      addSpark(event.clientX, event.clientY, state.isCompact ? 18 : 34);
+    });
+    density.addEventListener("input", seedParticles);
+    document.getElementById("snapshot").addEventListener("click", downloadSnapshot);
+    document.getElementById("shuffle").addEventListener("click", recalibrate);
+
+    Promise.resolve(document.fonts?.ready).finally(() => {
+      setupNativeBridge();
+      resize();
+      seedParticles();
+      smokeReadback();
+      requestAnimationFrame(tick);
+    });
+  </script>
+</body>
+</html>

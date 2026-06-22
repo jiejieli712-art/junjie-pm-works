@@ -68,6 +68,20 @@
 | `07_Delivery_and_Evidence/Copyright_and_Filing/` | `Software_Description_Draft.docx`、`Copyright_Process.*` | 作为软著/交付可信度补强材料 |
 | `07_Delivery_and_Evidence/Demo_Pages/` | `Activity/`、`GanFanBa_*`、`YuanLai_Short_Drama/`、`Company_Website/` | 展示活动页、偏好冷启动、玩法、商家列表、短剧页和官网页面原型 |
 
+## 第三批补充材料
+
+| 目录 | 材料 | 用途 |
+| --- | --- | --- |
+| `04_System_Architecture/Product_Architecture/` | `GanFanBa_Bitego_Codebase_Overview.md` | 说明干饭吧后台、小程序业务和数据支撑之间的系统关系 |
+| `04_System_Architecture/Product_Architecture/` | `YuanLai_Short_Drama_Codebase_Overview.md` | 说明短剧平台后台、服务端、对象存储和内容运营链路 |
+| `04_System_Architecture/Backend_Admin_Logic/` | `Bitego_Admin_Web_package.json` | 保留干饭吧后台前端依赖证据，证明技术栈和管理端实现基础 |
+| `04_System_Architecture/Backend_Admin_Logic/` | `YuanLai_Admin_package.json`、`YuanLai_Server_package.json` | 保留短剧后台与服务端依赖证据，证明跨端技术栈 |
+| `02_Market_and_User_Insights/Competitive_Research/` | `PixelleVideo_Project_Research.md` | 展示 AI 视频工具调研、架构拆解和生产化风险判断 |
+| `05_AI_Agent_Workflows/Workflow_Diagrams/` | `PixelleVideo_Workflow_Notes.md` | 将 AI 视频生成链路抽象成可复用工作流说明 |
+| `08_Scripts_and_Tools/Automation/Ele_Promotion_Capture_Helper/` | `README.md`、`promotion-capture-helper.user.js` | 展示浏览器自动化、推广链接采集和 CSV/JSON 导出工具 |
+| `07_Delivery_and_Evidence/Demo_Pages/HTML_Canvas_Reactor/` | `index.html`、`README.md` | 展示 HTML、CSS、Canvas 动效和响应式交互实验 |
+| `07_Delivery_and_Evidence/Screenshots/HTML_Canvas_Reactor/` | `desktop-final.png`、`mobile-final-2.png` | 展示视觉实验在桌面和移动端的效果截图 |
+
 ## 未上传内容
 
 - 原始完整压缩包。
@@ -77,3 +91,5 @@
 - `菜品库_v1_20260202.xlsx`，文件约 552MB，属于大体积原始菜品库，不适合进入公开作品集仓库。
 - `安全责任书-李俊杰-7220764418.docx`，属于个人责任/身份相关材料，不上传。
 - `微信二维码.png`，属于联系方式/二维码类材料，不上传。
+- `bitego-master`、`bitego-web-ui`、`fastshort-main` 等完整源码树不直接上传，仅保留依赖证据和结构说明。
+- 含公网 IP、默认密钥、对象存储账号、JWT Secret、数据库连接等配置的部署文件不直接上传。
