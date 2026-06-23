@@ -1,0 +1,19 @@
+{
+    "exported_at": "2026-06-23 16:31:59",
+    "total_files": 1,
+    "rows": [
+        {
+            "source_file": "徐州市.json",
+            "city_name": "徐州市",
+            "district_name": "全市",
+            "total_shops": 1,
+            "matched_count": 1,
+            "unmatched_count": 0,
+            "error_count": 0,
+            "api_request_count": 0,
+            "output_csv": "keyword_output\\by_district\\徐州市\\徐州市_amap_keyword.csv",
+            "output_json": "keyword_output\\by_district\\徐州市\\徐州市_amap_keyword.json",
+            "finished_at": "2026-06-23 16:31:56"
+        }
+    ]
+}

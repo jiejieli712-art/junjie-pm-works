@@ -1,0 +1,17 @@
+{
+  "name": "beautygo",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "concurrently -n api,admin,super -c blue,green,magenta \"pnpm --filter @beautygo/api dev\" \"pnpm --filter @beautygo/admin-web dev\" \"pnpm --filter @beautygo/super-app dev\"",
+    "dev:api": "pnpm --filter @beautygo/api dev",
+    "dev:admin": "pnpm --filter @beautygo/admin-web dev",
+    "dev:super-app": "pnpm --filter @beautygo/super-app dev",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm -r --if-present build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.8.3"
+  }
+}

@@ -10,6 +10,7 @@
 4. `04_System_Architecture/`：查看产品结构、后台逻辑和接口协作说明。
 5. `06_Data_and_Operations/`：查看商家、菜品、运营数据处理材料。
 6. `08_Scripts_and_Tools/`：查看辅助落地的脚本和自动化工具。
+7. `00_Index/Device_Work_Output_Audit_20260623.md`：查看本次设备补充扫描和脱敏边界。
 
 ## 核心案例
 
@@ -18,3 +19,10 @@
 | 干饭吧 / Bitego | 从需求、原型、小程序页面到后台协同的完整产品闭环 | `09_Case_Studies/GanFanBa_Bitego/CASE_STUDY.md` |
 | 元来短剧平台 | 内容平台的跨端业务理解与后台运营逻辑 | `09_Case_Studies/YuanLai_Short_Drama/CASE_STUDY.md` |
 | 商家与菜品数据处理 | 面向业务决策的数据采集、清洗和结构化输出 | `09_Case_Studies/Merchant_Data_Infrastructure/CASE_STUDY.md` |
+
+## 补充材料
+
+| 材料方向 | 价值定位 | 推荐阅读 |
+| --- | --- | --- |
+| 干饭吧本地生活扩展 | 展示定位体系、外部平台承接、活动转化和测试验证能力 | `01_Product_Strategy/PRD/GanFanBa_Bitego/`、`07_Delivery_and_Evidence/Demo_Pages/GanFanBa_Local_Life/` |
+| BeautyGo | 展示从新业务 PRD 到 MVP 边界、Agent 协作和技术骨架的组织能力 | `01_Product_Strategy/PRD/BeautyGo/`、`04_System_Architecture/Product_Architecture/BeautyGo_Codebase_Overview.md` |

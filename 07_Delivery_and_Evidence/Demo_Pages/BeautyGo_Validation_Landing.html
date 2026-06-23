@@ -1,0 +1,631 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BeautyGo | 徐州旅拍妆试运营</title>
+  <meta
+    name="description"
+    content="BeautyGo 正在徐州试运营上门旅拍妆服务。用户可提交预约需求，化妆师可申请加入试运营合作。"
+  />
+  <style>
+    :root {
+      --paper: #f4ede1;
+      --sand: #e4c7a5;
+      --ink: #1a1512;
+      --cocoa: #6e4732;
+      --terracotta: #b85a36;
+      --rose: #d59d7b;
+      --cream: rgba(255, 248, 240, 0.82);
+      --line: rgba(26, 21, 18, 0.12);
+      --shadow: 0 24px 60px rgba(37, 24, 18, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(212, 154, 118, 0.28), transparent 34%),
+        radial-gradient(circle at 85% 18%, rgba(183, 93, 55, 0.18), transparent 24%),
+        linear-gradient(180deg, #f7f1e7 0%, #f2eadf 58%, #efe4d6 100%);
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.6;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+      letter-spacing: 0.02em;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .shell {
+      width: min(1160px, calc(100vw - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      padding: 18px 0;
+    }
+
+    .topbar .shell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(145deg, var(--terracotta), #7d3922);
+      color: #fff8f2;
+      box-shadow: var(--shadow);
+      font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+      font-size: 20px;
+    }
+
+    .note {
+      font-size: 13px;
+      color: rgba(26, 21, 18, 0.72);
+    }
+
+    .hero {
+      padding: 22px 0 48px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.9fr;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .hero-copy,
+    .hero-card,
+    .section-card,
+    .cta-panel {
+      background: var(--cream);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-copy {
+      border-radius: 34px;
+      padding: 42px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-copy::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      top: -60px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(212, 157, 123, 0.42), transparent 66%);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(184, 90, 54, 0.12);
+      color: var(--cocoa);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin-top: 18px;
+      font-size: clamp(42px, 7vw, 78px);
+      line-height: 0.95;
+    }
+
+    .hero p.lead {
+      max-width: 48ch;
+      margin: 22px 0 0;
+      font-size: 18px;
+      color: rgba(26, 21, 18, 0.82);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 700;
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--terracotta), #8f4528);
+      color: #fff6ef;
+      box-shadow: 0 16px 30px rgba(143, 69, 40, 0.25);
+    }
+
+    .btn-secondary {
+      border-color: rgba(26, 21, 18, 0.16);
+      background: rgba(255, 255, 255, 0.54);
+      color: var(--ink);
+    }
+
+    .hero-foot {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.54);
+      border: 1px solid var(--line);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 22px;
+      font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+    }
+
+    .stat span {
+      font-size: 13px;
+      color: rgba(26, 21, 18, 0.7);
+    }
+
+    .hero-card {
+      border-radius: 34px;
+      padding: 26px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .portrait {
+      min-height: 320px;
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(26, 21, 18, 0.1), rgba(26, 21, 18, 0.28)),
+        radial-gradient(circle at 25% 20%, rgba(213, 157, 123, 0.8), transparent 24%),
+        radial-gradient(circle at 70% 18%, rgba(184, 90, 54, 0.68), transparent 24%),
+        linear-gradient(140deg, #7a422d, #c37d58 56%, #f1d1b6 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portrait::before,
+    .portrait::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      background: rgba(255, 248, 240, 0.24);
+    }
+
+    .portrait::before {
+      width: 160px;
+      height: 160px;
+      top: 26px;
+      right: 30px;
+    }
+
+    .portrait::after {
+      width: 240px;
+      height: 240px;
+      bottom: -40px;
+      left: -40px;
+    }
+
+    .mini-card {
+      border-radius: 22px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.58);
+      border: 1px solid var(--line);
+    }
+
+    .mini-card h3 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    section {
+      padding: 18px 0 22px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .section-header h2 {
+      font-size: clamp(28px, 4vw, 42px);
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .section-card {
+      border-radius: 28px;
+      padding: 24px;
+    }
+
+    .section-card h3 {
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      color: rgba(26, 21, 18, 0.82);
+    }
+
+    .process {
+      counter-reset: step;
+      display: grid;
+      gap: 14px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 16px;
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.56);
+      border: 1px solid var(--line);
+    }
+
+    .step::before {
+      counter-increment: step;
+      content: "0" counter(step);
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(184, 90, 54, 0.16), rgba(110, 71, 50, 0.14));
+      color: var(--cocoa);
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .cta-panel {
+      border-radius: 34px;
+      padding: 34px;
+      display: grid;
+      gap: 16px;
+      margin: 28px 0 46px;
+    }
+
+    .cta-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer {
+      padding: 0 0 42px;
+      color: rgba(26, 21, 18, 0.72);
+      font-size: 14px;
+    }
+
+    .fade-up {
+      opacity: 0;
+      transform: translateY(16px);
+      animation: fadeUp 700ms ease forwards;
+    }
+
+    .fade-up:nth-child(2) { animation-delay: 120ms; }
+    .fade-up:nth-child(3) { animation-delay: 220ms; }
+    .fade-up:nth-child(4) { animation-delay: 320ms; }
+
+    @keyframes fadeUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 940px) {
+      .hero-grid,
+      .grid-3,
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-copy,
+      .hero-card,
+      .section-card,
+      .cta-panel {
+        border-radius: 24px;
+      }
+
+      .hero-foot {
+        grid-template-columns: 1fr;
+      }
+
+      .section-header {
+        align-items: start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <script>
+    const BEAUTYGO_LINKS = {
+      customerForm: "https://replace-with-customer-form.example.com",
+      artistForm: "https://replace-with-artist-form.example.com",
+      partnerContact: "https://replace-with-partner-contact.example.com"
+    };
+  </script>
+
+  <header class="topbar">
+    <div class="shell">
+      <div class="brand">
+        <span class="brand-mark">B</span>
+        <span>BeautyGo</span>
+      </div>
+      <div class="note">徐州旅拍妆试运营 · 当前仅做人工作业验证</div>
+    </div>
+  </header>
+
+  <main class="hero">
+    <div class="shell hero-grid">
+      <section class="hero-copy fade-up">
+        <div class="eyebrow">Trial Run · Chengdu</div>
+        <h1>把旅拍前最难的一步<br />从“自己凑合”改成“有人上门做好”</h1>
+        <p class="lead">
+          BeautyGo 正在徐州测试上门旅拍妆服务。现在不做复杂平台，不做大而全，只验证一件事：
+          用户是否愿意为更省事、更稳定、更可信的上门妆造付费。
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" id="customer-form-link" href="#">我要预约旅拍妆</a>
+          <a class="btn btn-secondary" id="artist-form-link" href="#">我是化妆师，想接试运营单</a>
+        </div>
+        <div class="hero-foot">
+          <div class="stat">
+            <strong>徐州</strong>
+            <span>首轮只验证一个城市</span>
+          </div>
+          <div class="stat">
+            <strong>旅拍妆</strong>
+            <span>先收口到一个明确场景</span>
+          </div>
+          <div class="stat">
+            <strong>30 天</strong>
+            <span>先验证真实需求、供给和完单率</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="hero-card fade-up">
+        <div class="portrait" aria-hidden="true"></div>
+        <div class="mini-card">
+          <h3>当前试运营方式</h3>
+          <p>
+            用户提交需求后，我们人工确认时间、地点、预算和妆容风格，再匹配合适化妆师。
+            这不是正式平台，是一轮对“需求是否成立”的实战验证。
+          </p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <section>
+    <div class="shell">
+      <div class="section-header fade-up">
+        <h2>为什么先做徐州旅拍妆</h2>
+        <div class="note">不是因为它最大，而是因为它最适合先验证</div>
+      </div>
+      <div class="grid-3">
+        <article class="section-card fade-up">
+          <h3>场景明确</h3>
+          <p>旅拍对妆面和出片稳定性要求高，用户能清楚感知“有人上门处理好”的价值。</p>
+        </article>
+        <article class="section-card fade-up">
+          <h3>供给可找</h3>
+          <p>旅拍化妆师、兼职化妆师、美妆院校学生和婚礼淡季供给，都可能转化为首轮候选池。</p>
+        </article>
+        <article class="section-card fade-up">
+          <h3>合作容易</h3>
+          <p>旅拍工作室、摄影师、汉服体验馆天然需要更稳定的妆造环节，合作逻辑清晰。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shell grid-2">
+      <article class="section-card fade-up">
+        <div class="section-header">
+          <h2>你是客户</h2>
+          <div class="note">适合谁</div>
+        </div>
+        <ul class="list">
+          <li>来徐州旅拍、写真、汉服出片，但不想为妆造再折腾</li>
+          <li>希望有人提前确认时间、地点、预算和风格</li>
+          <li>更在意出片效果和省事，而不是只找最低价</li>
+        </ul>
+      </article>
+      <article class="section-card fade-up">
+        <div class="section-header">
+          <h2>你是化妆师</h2>
+          <div class="note">适合谁</div>
+        </div>
+        <ul class="list">
+          <li>有清晰作品集，有旅拍或写真相关妆面经验</li>
+          <li>愿意接试运营单，配合明确规则和履约反馈</li>
+          <li>希望获得更稳定的订单线索，而不是继续零散私域接单</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="shell">
+      <div class="section-header fade-up">
+        <h2>当前流程</h2>
+        <div class="note">轻产品承接，重人工履约</div>
+      </div>
+      <div class="process">
+        <div class="step fade-up">
+          <div>
+            <h3>提交需求或合作申请</h3>
+            <p>客户填写旅拍妆预约表，化妆师填写试运营申请表。</p>
+          </div>
+        </div>
+        <div class="step fade-up">
+          <div>
+            <h3>人工确认和匹配</h3>
+            <p>我们确认场景、时间、地点、预算和风格，再筛选能接单的化妆师。</p>
+          </div>
+        </div>
+        <div class="step fade-up">
+          <div>
+            <h3>完成支付和履约</h3>
+            <p>首轮采用人工确认和收款。每单记录进台账，履约后收满意度和反馈。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shell grid-3">
+      <article class="section-card fade-up">
+        <h3>我们现在不会做</h3>
+        <ul class="list">
+          <li>不做完整小程序和重后台</li>
+          <li>不做全国扩张和多城市对比</li>
+          <li>不做社区、会员、AI 推荐</li>
+        </ul>
+      </article>
+      <article class="section-card fade-up">
+        <h3>我们现在最看重</h3>
+        <ul class="list">
+          <li>真实付费需求是否存在</li>
+          <li>高质量供给能否稳定找到</li>
+          <li>订单能否稳定完成并留下好评</li>
+        </ul>
+      </article>
+      <article class="section-card fade-up">
+        <h3>合作方能获得什么</h3>
+        <ul class="list">
+          <li>为旅拍用户补足妆造服务环节</li>
+          <li>提升客户整体体验和出片成功率</li>
+          <li>先试点，再决定是否长期合作</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="shell">
+      <div class="cta-panel fade-up">
+        <div class="eyebrow">Ready to Test</div>
+        <h2>如果你愿意参加这轮试运营</h2>
+        <p>
+          客户可以提交旅拍妆预约需求。化妆师可以申请进入试运营合作池。
+          摄影工作室和合作方可联系 BeautyGo 讨论转介和联合试点。
+        </p>
+        <div class="cta-links">
+          <a class="btn btn-primary" id="customer-form-link-bottom" href="#">提交预约需求</a>
+          <a class="btn btn-secondary" id="artist-form-link-bottom" href="#">申请合作</a>
+          <a class="btn btn-secondary" id="partner-contact-link" href="#">合作方联系</a>
+        </div>
+        <div class="note">
+          发布前请先把页面内的 3 个示例链接替换成真实表单或联系入口。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="shell">
+      <p>
+        BeautyGo 当前为试运营验证项目，不构成正式平台承诺。涉及价格、支付、取消、隐私和责任条款，以人工确认结果为准。
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    const bindLink = (id, href) => {
+      const element = document.getElementById(id);
+      if (!element) return;
+      element.href = href;
+      if (href.includes("replace-with")) {
+        element.addEventListener("click", (event) => {
+          event.preventDefault();
+          alert("请先把示例链接替换为真实表单或联系地址。");
+        });
+      }
+    };
+
+    bindLink("customer-form-link", BEAUTYGO_LINKS.customerForm);
+    bindLink("artist-form-link", BEAUTYGO_LINKS.artistForm);
+    bindLink("customer-form-link-bottom", BEAUTYGO_LINKS.customerForm);
+    bindLink("artist-form-link-bottom", BEAUTYGO_LINKS.artistForm);
+    bindLink("partner-contact-link", BEAUTYGO_LINKS.partnerContact);
+  </script>
+</body>
+</html>
+

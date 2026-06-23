@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="format-detection" content="telephone=no,email=no,address=no">
+	<title>干饭幸运签</title>
+	<link rel="preload" as="image" href="./assets/bg.webp">
+	<link rel="preload" as="image" href="./assets/title.webp">
+	<link rel="preload" as="image" href="./assets/tube.webp">
+	<link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+	<div class="page-shell">
+		<header class="nav-bar">
+			<button class="nav-back" type="button" aria-label="返回">‹</button>
+			<h1>干饭幸运签</h1>
+			<span class="nav-space" aria-hidden="true"></span>
+		</header>
+
+		<main class="landing-main">
+			<section class="hero" aria-label="干饭幸运签抽签区">
+				<img class="hero-title" src="./assets/title.webp" width="630" height="262" alt="摇一摇 抽出心爱美食">
+
+				<div class="draw-scene" id="drawScene">
+					<img class="tube-cover" src="./assets/tube-cover.webp" width="552" height="301" alt="">
+
+					<div class="ticket ticket-purple" data-ticket-index="0">
+						<img src="./assets/ticket-purple.webp" width="138" height="710" alt="">
+						<img class="dish-icon" alt="">
+						<span class="ticket-name"></span>
+					</div>
+					<div class="ticket ticket-red" data-ticket-index="1">
+						<img src="./assets/ticket-red.webp" width="138" height="724" alt="">
+						<img class="dish-icon" alt="">
+						<span class="ticket-name"></span>
+					</div>
+					<div class="ticket ticket-blue" data-ticket-index="2">
+						<img src="./assets/ticket-blue.webp" width="138" height="737" alt="">
+						<img class="dish-icon" alt="">
+						<span class="ticket-name"></span>
+					</div>
+					<div class="ticket ticket-yellow" data-ticket-index="3">
+						<img src="./assets/ticket-yellow.webp" width="138" height="724" alt="">
+						<img class="dish-icon" alt="">
+						<span class="ticket-name"></span>
+					</div>
+
+					<img class="tube" src="./assets/tube.webp" width="678" height="632" alt="">
+
+					<button class="start-button" id="startButton" type="button" aria-label="点击摇一摇">
+						<img src="./assets/start-btn.webp" width="455" height="100" alt="点击摇一摇">
+					</button>
+					<button class="loading-button" id="loadingButton" type="button" disabled hidden>
+						正在帮你决定...
+					</button>
+				</div>
+
+				<div class="result-card" id="resultCard" hidden>
+					<div class="result-title">
+						<span class="result-prefix">今日饭签：</span>
+						<strong id="dishName">麻辣烫</strong>
+					</div>
+					<p id="dishDesc">附近优惠已准备好，去美团看看红包和优惠套餐。</p>
+					<button class="meituan-button" id="meituanButton" type="button">
+						去美团领红包/看优惠
+					</button>
+					<button class="again-button" id="againButton" type="button">
+						换一个菜试试
+					</button>
+				</div>
+
+				<p class="landing-tip">优惠、红包及活动内容以美团页面实际展示为准。</p>
+			</section>
+		</main>
+	</div>
+
+	<script src="./js/main.js"></script>
+</body>
+</html>

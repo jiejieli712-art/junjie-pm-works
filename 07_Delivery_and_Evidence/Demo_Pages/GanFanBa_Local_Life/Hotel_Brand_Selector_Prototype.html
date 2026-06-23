@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390px, initial-scale=1.0">
+<title>选品牌找酒店</title>
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1A2E3B;
+    --gold: #C8963E;
+    --gold-light: #F5E6CB;
+    --blue: #3B6CF4;
+    --blue-light: #EBF0FF;
+    --bg: #F2F3F7;
+    --card: #FFFFFF;
+    --text-primary: #1A1A1A;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+    --border: #E5E7EB;
+    --red: #EF4444;
+    --green: #10B981;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+    --font: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  }
+  html, body {
+    font-family: var(--font);
+    background: #E8E9EE;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .phone-frame {
+    width: 390px;
+    min-height: 100vh;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ===== STATUS BAR ===== */
+  .status-bar {
+    height: 44px;
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .status-time { color: #fff; font-size: 15px; font-weight: 600; }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons span { font-size: 12px; color: #fff; }
+
+  /* ===== NAV BAR ===== */
+  .nav-bar {
+    background: var(--navy);
+    padding: 8px 16px 14px;
+    position: sticky;
+    top: 44px;
+    z-index: 99;
+  }
+  .nav-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .nav-back { color: rgba(255,255,255,0.7); font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .nav-title { color: #fff; font-size: 17px; font-weight: 600; }
+  .nav-right { font-size: 13px; color: var(--gold); cursor: pointer; }
+
+  /* ===== SEARCH BOX ===== */
+  .search-wrap {
+    background: rgba(255,255,255,0.12);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    height: 36px;
+    gap: 8px;
+    cursor: text;
+    transition: background 0.2s;
+  }
+  .search-wrap:focus-within { background: rgba(255,255,255,0.18); }
+  .search-icon { font-size: 14px; color: rgba(255,255,255,0.6); flex-shrink: 0; }
+  .search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 14px;
+    font-family: var(--font);
+  }
+  .search-input::placeholder { color: rgba(255,255,255,0.45); }
+  .search-clear {
+    width: 18px; height: 18px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .search-clear.show { display: flex; }
+
+  /* ===== SELECTED BRAND FOCUS CARD ===== */
+  .focus-card {
+    margin: 12px 16px 0;
+    background: linear-gradient(135deg, var(--navy) 0%, #2A4459 100%);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    display: none;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(200,150,62,0.3);
+    box-shadow: var(--shadow-md);
+  }
+  .focus-card.show { display: block; }
+  .focus-card::before {
+    content: '';
+    position: absolute;
+    right: -20px; top: -20px;
+    width: 100px; height: 100px;
+    background: rgba(200,150,62,0.08);
+    border-radius: 50%;
+  }
+  .focus-card-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+  .focus-card-inner { display: flex; align-items: center; gap: 12px; }
+  .focus-brand-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .focus-brand-info { flex: 1; min-width: 0; }
+  .focus-brand-name { font-size: 16px; font-weight: 700; color: #fff; }
+  .focus-brand-meta { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+  .focus-card-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-view-stores {
+    background: var(--gold);
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+  .btn-view-stores:active { opacity: 0.8; }
+  .btn-clear-select {
+    width: 28px; height: 28px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .btn-clear-select:active { background: rgba(255,255,255,0.1); }
+
+  /* ===== SCENE QUICK SELECT ===== */
+  .scene-section {
+    margin: 12px 16px 0;
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 14px 14px 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: 13px; font-weight: 600; color: var(--text-primary);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .section-title .dot {
+    width: 3px; height: 12px;
+    background: var(--gold);
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .section-more { font-size: 12px; color: var(--text-muted); }
+  .scenes-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .scene-chip {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 4px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.18s;
+    border: 1.5px solid transparent;
+    background: var(--bg);
+    position: relative;
+  }
+  .scene-chip:active { transform: scale(0.94); }
+  .scene-chip.active {
+    background: var(--blue-light);
+    border-color: var(--blue);
+  }
+  .scene-chip.active .scene-icon-wrap { background: var(--blue); }
+  .scene-chip.active .scene-label { color: var(--blue); }
+  .scene-icon-wrap {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    transition: background 0.18s;
+  }
+  .scene-label { font-size: 10px; color: var(--text-secondary); text-align: center; line-height: 1.3; font-weight: 500; }
+
+  /* ===== CATEGORY TABS ===== */
+  .cat-tabs-wrap {
+    margin: 10px 0 0;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 122px;
+    z-index: 98;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .cat-tabs {
+    display: flex;
+    overflow-x: auto;
+    padding: 0 16px;
+    gap: 0;
+    scrollbar-width: none;
+  }
+  .cat-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab {
+    flex-shrink: 0;
+    padding: 11px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    transition: color 0.18s;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+  }
+  .cat-tab.active { color: var(--navy); font-weight: 700; }
+  .cat-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 20px; height: 3px;
+    background: var(--navy);
+    border-radius: 2px 2px 0 0;
+  }
+  .cat-tab-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 16px; height: 16px;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 10px;
+    padding: 0 4px;
+    margin-left: 3px;
+    color: var(--text-muted);
+    transition: all 0.18s;
+  }
+  .cat-tab.active .cat-tab-count {
+    background: var(--navy);
+    color: #fff;
+  }
+
+  /* ===== COMPARE BAR ===== */
+  .compare-bar {
+    position: sticky;
+    top: 166px;
+    z-index: 97;
+    margin: 0 16px;
+    display: none;
+    background: var(--gold-light);
+    border-radius: 10px;
+    padding: 8px 12px;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(200,150,62,0.3);
+    margin-top: 8px;
+    transition: all 0.3s;
+  }
+  .compare-bar.show { display: flex; }
+  .compare-bar-label { font-size: 12px; color: var(--gold); font-weight: 600; flex-shrink: 0; }
+  .compare-slots { display: flex; gap: 6px; flex: 1; }
+  .compare-slot {
+    flex: 1;
+    height: 28px;
+    border-radius: 6px;
+    border: 1.5px dashed #D4A853;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: rgba(200,150,62,0.5);
+    overflow: hidden;
+    position: relative;
+  }
+  .compare-slot.filled { border-style: solid; border-color: var(--gold); background: #fff; }
+  .compare-slot-name { font-size: 11px; font-weight: 600; color: var(--navy); padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .compare-slot-remove {
+    position: absolute; right: 3px; top: 50%; transform: translateY(-50%);
+    width: 14px; height: 14px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; color: #fff; cursor: pointer;
+  }
+  .btn-compare {
+    background: var(--gold);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: opacity 0.2s;
+  }
+  .btn-compare:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-compare:not(:disabled):active { opacity: 0.8; }
+
+  /* ===== BRAND WALL ===== */
+  .brand-wall {
+    padding: 10px 16px 120px;
+  }
+  .brand-group { margin-bottom: 4px; }
+  .brand-group-label {
+    font-size: 11px; font-weight: 700;
+    color: var(--text-muted);
+    padding: 8px 0 6px;
+    display: flex; align-items: center; gap: 6px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .brand-group-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .brands-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  /* ===== BRAND CARD ===== */
+  .brand-card {
+    background: var(--card);
+    border-radius: var(--radius-md);
+    padding: 12px 10px 10px;
+    cursor: pointer;
+    transition: all 0.18s;
+    border: 1.5px solid transparent;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .brand-card:active { transform: scale(0.96); }
+  .brand-card.selected {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 2px rgba(26,46,59,0.12), var(--shadow-sm);
+  }
+  .brand-card.compared {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px rgba(200,150,62,0.15), var(--shadow-sm);
+  }
+  .brand-card.selected.compared {
+    border-color: var(--navy);
+  }
+
+  /* Selected checkmark */
+  .card-selected-badge {
+    position: absolute; top: 6px; left: 6px;
+    width: 18px; height: 18px;
+    background: var(--navy);
+    border-radius: 50%;
+    display: none; align-items: center; justify-content: center;
+    font-size: 10px; color: #fff;
+    z-index: 2;
+  }
+  .brand-card.selected .card-selected-badge { display: flex; }
+
+  /* Compare + button */
+  .card-compare-btn {
+    position: absolute; top: 6px; right: 6px;
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: var(--text-muted);
+    cursor: pointer;
+    z-index: 3;
+    transition: all 0.15s;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .card-compare-btn:active { transform: scale(0.88); }
+  .brand-card.compared .card-compare-btn {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #fff;
+  }
+
+  /* Brand icon */
+  .brand-icon-wrap {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 8px;
+    font-size: 17px; font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+    position: relative;
+    overflow: hidden;
+  }
+  .brand-icon-wrap::after {
+    content: '';
+    position: absolute; bottom: 0; right: 0;
+    width: 16px; height: 16px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50% 0 0 0;
+  }
+
+  .brand-name {
+    font-size: 13px; font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .brand-tag {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 6px;
+    display: block;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .brand-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+    margin-top: 2px;
+  }
+  .brand-price {
+    font-size: 12px; font-weight: 700;
+    color: var(--red);
+  }
+  .brand-price span { font-size: 10px; font-weight: 400; color: var(--text-muted); }
+  .brand-score {
+    display: flex; align-items: center; gap: 2px;
+    font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  }
+  .brand-score::before { content: '★'; font-size: 11px; color: var(--gold); }
+  .brand-stores { font-size: 10px; color: var(--text-muted); text-align: right; }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 32px;
+    text-align: center;
+  }
+  .empty-state.show { display: flex; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+  .empty-clear { margin-top: 16px; padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: #fff; font-size: 13px; color: var(--text-secondary); cursor: pointer; font-family: var(--font); }
+
+  /* ===== BOTTOM BAR ===== */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 390px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    z-index: 200;
+    transition: all 0.3s;
+  }
+  .bottom-bar-default {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .bottom-selected { display: none; }
+  .bottom-brand-summary {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .bottom-brand-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--navy);
+    flex-shrink: 0;
+  }
+  .bottom-brand-text { font-size: 13px; color: var(--text-primary); }
+  .bottom-brand-text strong { font-weight: 700; }
+  .bottom-btn-row { display: flex; gap: 8px; }
+  .btn-secondary {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 13px; color: var(--text-secondary);
+    cursor: pointer; font-family: var(--font);
+    transition: all 0.18s;
+  }
+  .btn-secondary:active { background: var(--bg); }
+  .btn-primary {
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: none;
+    background: var(--navy);
+    font-size: 13px; color: #fff; font-weight: 600;
+    cursor: pointer; font-family: var(--font);
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .bottom-hint { font-size: 11px; color: var(--text-muted); }
+  .bottom-result-count { font-size: 12px; color: var(--text-secondary); }
+
+  /* ===== COMPARE MODAL ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 500;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .compare-modal {
+    width: 390px;
+    background: #fff;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .modal-title {
+    font-size: 16px; font-weight: 700; color: var(--text-primary);
+    margin-bottom: 16px; text-align: center;
+  }
+  .compare-table { width: 100%; border-collapse: collapse; }
+  .compare-table th, .compare-table td {
+    text-align: center;
+    padding: 10px 6px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table th { font-weight: 600; font-size: 11px; color: var(--text-muted); background: var(--bg); }
+  .compare-table .row-label { text-align: left; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
+  .compare-col-header {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .compare-col-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #fff;
+    margin: 0 auto;
+  }
+  .compare-highlight { color: var(--red); font-weight: 700; }
+  .compare-best { color: var(--green); font-weight: 700; }
+  .modal-close {
+    margin-top: 16px;
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 14px; color: var(--text-secondary);
+    cursor: pointer; font-family: var(--font);
+    transition: background 0.18s;
+  }
+  .modal-close:active { background: var(--bg); }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    top: 60px; left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: rgba(26,26,26,0.88);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: 13px;
+    padding: 8px 18px;
+    border-radius: 20px;
+    z-index: 1000;
+    opacity: 0;
+    transition: all 0.25s;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ===== SEARCH RESULT HIGHLIGHT ===== */
+  .highlight { color: var(--blue); font-weight: 700; }
+
+  /* ===== SCROLL FADE ===== */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .brand-card { animation: fadeInUp 0.3s ease backwards; }
+
+  /* ===== MISC ===== */
+  .divider { height: 8px; background: var(--bg); }
+  .no-brands-in-group { display: none; }
+</style>
+</head>
+<body>
+
+<div class="phone-frame" id="app">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <span>●●●</span>
+      <span>WiFi</span>
+      <span>🔋</span>
+    </div>
+  </div>
+
+  <!-- NAV BAR -->
+  <div class="nav-bar">
+    <div class="nav-title-row">
+      <div class="nav-back" onclick="showToast('返回')">‹ 返回</div>
+      <span class="nav-title">选品牌</span>
+      <span class="nav-right" id="compareEntrance" onclick="openCompareModal()">对比</span>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" type="text" id="searchInput" placeholder="搜品牌、类型或场景…" oninput="handleSearch(this.value)">
+      <div class="search-clear" id="searchClear" onclick="clearSearch()">✕</div>
+    </div>
+  </div>
+
+  <!-- SELECTED BRAND FOCUS CARD -->
+  <div class="focus-card" id="focusCard">
+    <div class="focus-card-label">已选品牌</div>
+    <div class="focus-card-inner">
+      <div class="focus-brand-icon" id="focusIcon"></div>
+      <div class="focus-brand-info">
+        <div class="focus-brand-name" id="focusName"></div>
+        <div class="focus-brand-meta" id="focusMeta"></div>
+      </div>
+      <div class="focus-card-actions">
+        <button class="btn-view-stores" onclick="viewStores()">看门店 →</button>
+        <button class="btn-clear-select" onclick="clearSelection()" title="取消选择">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE QUICK SELECT -->
+  <div class="scene-section">
+    <div class="section-header">
+      <span class="section-title"><span class="dot"></span>按场景快选</span>
+      <span class="section-more" onclick="clearScene()">清除</span>
+    </div>
+    <div class="scenes-grid" id="scenesGrid"></div>
+  </div>
+
+  <!-- CATEGORY TABS -->
+  <div class="cat-tabs-wrap">
+    <div class="cat-tabs" id="catTabs"></div>
+  </div>
+
+  <!-- COMPARE BAR -->
+  <div class="compare-bar" id="compareBar">
+    <span class="compare-bar-label">对比</span>
+    <div class="compare-slots" id="compareSlots"></div>
+    <button class="btn-compare" id="btnCompare" onclick="openCompareModal()" disabled>开始对比</button>
+  </div>
+
+  <!-- BRAND WALL -->
+  <div class="brand-wall" id="brandWall"></div>
+
+  <!-- EMPTY STATE -->
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">🔭</div>
+    <div class="empty-text">没有找到匹配的品牌<br>换个关键词试试</div>
+    <button class="empty-clear" onclick="clearSearch()">清除搜索</button>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <div class="bottom-bar-default" id="bottomDefault">
+      <span class="bottom-hint" id="bottomHint">共 50 个品牌</span>
+      <div class="bottom-btn-row">
+        <button class="btn-secondary" onclick="showAllBrands()">全部品牌</button>
+        <button class="btn-primary" onclick="showToast('请先选择一个品牌')">看门店</button>
+      </div>
+    </div>
+    <div class="bottom-selected" id="bottomSelected">
+      <div class="bottom-brand-summary">
+        <div class="bottom-brand-dot"></div>
+        <div class="bottom-brand-text">已选：<strong id="bottomBrandName"></strong></div>
+      </div>
+      <div class="bottom-btn-row">
+        <button class="btn-secondary" onclick="clearSelection()">取消</button>
+        <button class="btn-primary" onclick="viewStores()">看门店</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- COMPARE MODAL -->
+<div class="modal-overlay" id="compareModal" onclick="closeCompareModal(event)">
+  <div class="compare-modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">品牌对比</div>
+    <div id="compareTableWrap"></div>
+    <button class="modal-close" onclick="closeCompareModal()">关闭</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== DATA =====
+const CATEGORIES = [
+  { id: 'all', label: '全部' },
+  { id: 'economy', label: '经济连锁' },
+  { id: 'comfort', label: '舒适精选' },
+  { id: 'upscale', label: '中高端' },
+  { id: 'luxury', label: '高端度假' },
+  { id: 'apartment', label: '公寓民宿' },
+];
+
+const SCENES = [
+  { id: 'budget', icon: '💰', label: '低价过夜', cats: ['economy'] },
+  { id: 'business', icon: '💼', label: '商务出差', cats: ['comfort', 'upscale'] },
+  { id: 'quality', icon: '✨', label: '品质舒适', cats: ['comfort', 'upscale', 'luxury'] },
+  { id: 'family', icon: '👨‍👩‍👧', label: '亲子友好', cats: ['comfort', 'luxury'] },
+  { id: 'nearby', icon: '📍', label: '附近多门店', cats: ['economy', 'comfort'] },
+];
+
+// Brand color palette
+const BRAND_COLORS = [
+  '#E63946','#2196F3','#FF9800','#4CAF50','#9C27B0',
+  '#00BCD4','#FF5722','#607D8B','#795548','#3F51B5',
+  '#F44336','#009688','#FF6F00','#1565C0','#6A1B9A',
+];
+
+const BRANDS = [
+  // Economy
+  { id:1, name:'如家', tag:'经济连锁·全国第一', cat:'economy', price:148, score:4.2, stores:5200, abbr:'如家', colorIdx:0, scene:['budget','nearby'] },
+  { id:2, name:'7天', tag:'经济连锁·性价比', cat:'economy', price:119, score:4.0, stores:4100, abbr:'7天', colorIdx:1, scene:['budget','nearby'] },
+  { id:3, name:'汉庭', tag:'经济连锁·华住旗下', cat:'economy', price:138, score:4.1, stores:3800, abbr:'汉庭', colorIdx:2, scene:['budget','nearby'] },
+  { id:4, name:'速8', tag:'经济连锁·美国品牌', cat:'economy', price:108, score:3.9, stores:2600, abbr:'速8', colorIdx:3, scene:['budget'] },
+  { id:5, name:'格林豪泰', tag:'经济连锁·格林酒店', cat:'economy', price:128, score:4.0, stores:3200, abbr:'格林', colorIdx:4, scene:['budget','nearby'] },
+  { id:6, name:'城市便捷', tag:'经济连锁·新兴品牌', cat:'economy', price:115, score:4.1, stores:1800, abbr:'城便', colorIdx:5, scene:['budget'] },
+  { id:7, name:'布丁', tag:'经济连锁·设计感', cat:'economy', price:135, score:4.2, stores:1500, abbr:'布丁', colorIdx:6, scene:['budget'] },
+  { id:8, name:'驿居', tag:'经济连锁·休闲风', cat:'economy', price:125, score:4.0, stores:1200, abbr:'驿居', colorIdx:7, scene:['budget'] },
+  { id:9, name:'尚客优', tag:'经济连锁·精选', cat:'economy', price:142, score:4.1, stores:900, abbr:'尚客', colorIdx:8, scene:['budget'] },
+  { id:10, name:'宜必思', tag:'经济连锁·雅高旗下', cat:'economy', price:155, score:4.2, stores:600, abbr:'宜必', colorIdx:9, scene:['budget'] },
+  // Comfort
+  { id:11, name:'全季', tag:'舒适精选·华住旗下', cat:'comfort', price:278, score:4.5, stores:2100, abbr:'全季', colorIdx:10, scene:['quality','business','nearby'] },
+  { id:12, name:'如家商旅', tag:'舒适精选·升级版', cat:'comfort', price:258, score:4.4, stores:800, abbr:'商旅', colorIdx:11, scene:['quality','business'] },
+  { id:13, name:'希岸', tag:'舒适精选·设计风', cat:'comfort', price:298, score:4.6, stores:500, abbr:'希岸', colorIdx:12, scene:['quality','business'] },
+  { id:14, name:'维也纳', tag:'舒适精选·本土品牌', cat:'comfort', price:268, score:4.4, stores:1600, abbr:'维也', colorIdx:13, scene:['quality','nearby'] },
+  { id:15, name:'云上四季', tag:'舒适精选·新兴', cat:'comfort', price:248, score:4.5, stores:300, abbr:'云季', colorIdx:14, scene:['quality'] },
+  { id:16, name:'桔子水晶', tag:'舒适精选·休闲', cat:'comfort', price:289, score:4.5, stores:400, abbr:'桔晶', colorIdx:0, scene:['quality'] },
+  { id:17, name:'美居', tag:'舒适精选·雅高品牌', cat:'comfort', price:318, score:4.5, stores:350, abbr:'美居', colorIdx:1, scene:['quality','business'] },
+  { id:18, name:'Holiday Inn Express', tag:'舒适精选·IHG旗下', cat:'comfort', price:328, score:4.4, stores:320, abbr:'HIE', colorIdx:2, scene:['quality','business'] },
+  { id:19, name:'艾美', tag:'舒适精选·精选', cat:'comfort', price:288, score:4.5, stores:280, abbr:'艾美', colorIdx:3, scene:['quality'] },
+  { id:20, name:'途客', tag:'舒适精选·青年风', cat:'comfort', price:235, score:4.3, stores:600, abbr:'途客', colorIdx:4, scene:['quality'] },
+  // Upscale
+  { id:21, name:'万豪', tag:'中高端·全球连锁', cat:'upscale', price:688, score:4.7, stores:420, abbr:'万豪', colorIdx:5, scene:['business','quality'] },
+  { id:22, name:'希尔顿', tag:'中高端·全球品牌', cat:'upscale', price:728, score:4.7, stores:380, abbr:'希尔', colorIdx:6, scene:['business','quality'] },
+  { id:23, name:'洲际', tag:'中高端·IHG旗下', cat:'upscale', price:758, score:4.7, stores:280, abbr:'洲际', colorIdx:7, scene:['business','quality'] },
+  { id:24, name:'凯悦', tag:'中高端·全球品牌', cat:'upscale', price:798, score:4.8, stores:220, abbr:'凯悦', colorIdx:8, scene:['business','quality'] },
+  { id:25, name:'铂尔曼', tag:'中高端·雅高旗下', cat:'upscale', price:668, score:4.6, stores:180, abbr:'铂尔', colorIdx:9, scene:['business'] },
+  { id:26, name:'皇冠假日', tag:'中高端·IHG旗下', cat:'upscale', price:718, score:4.7, stores:260, abbr:'皇冠', colorIdx:10, scene:['business','quality'] },
+  { id:27, name:'雅高', tag:'中高端·国际品牌', cat:'upscale', price:648, score:4.6, stores:150, abbr:'雅高', colorIdx:11, scene:['business'] },
+  { id:28, name:'喜来登', tag:'中高端·万豪旗下', cat:'upscale', price:768, score:4.7, stores:190, abbr:'喜来', colorIdx:12, scene:['business','quality'] },
+  { id:29, name:'假日酒店', tag:'中高端·IHG旗下', cat:'upscale', price:598, score:4.5, stores:310, abbr:'假日', colorIdx:13, scene:['business'] },
+  { id:30, name:'诺富特', tag:'中高端·雅高品牌', cat:'upscale', price:628, score:4.6, stores:165, abbr:'诺富', colorIdx:14, scene:['business'] },
+  // Luxury
+  { id:31, name:'四季', tag:'高端度假·顶奢品牌', cat:'luxury', price:2800, score:4.9, stores:45, abbr:'四季', colorIdx:0, scene:['quality','family'] },
+  { id:32, name:'文华东方', tag:'高端度假·奢华品牌', cat:'luxury', price:2400, score:4.9, stores:38, abbr:'文华', colorIdx:1, scene:['quality'] },
+  { id:33, name:'柏悦', tag:'高端度假·凯悦旗下', cat:'luxury', price:2200, score:4.8, stores:52, abbr:'柏悦', colorIdx:2, scene:['quality'] },
+  { id:34, name:'丽思卡尔顿', tag:'高端度假·万豪旗下', cat:'luxury', price:2600, score:4.9, stores:48, abbr:'丽思', colorIdx:3, scene:['quality','family'] },
+  { id:35, name:'安缦', tag:'高端度假·顶级奢华', cat:'luxury', price:4500, score:5.0, stores:12, abbr:'安缦', colorIdx:4, scene:['quality'] },
+  { id:36, name:'阿丽拉', tag:'高端度假·凯悦旗下', cat:'luxury', price:1800, score:4.8, stores:28, abbr:'阿丽', colorIdx:5, scene:['quality','family'] },
+  { id:37, name:'悦椿', tag:'高端度假·凯悦旗下', cat:'luxury', price:1600, score:4.8, stores:35, abbr:'悦椿', colorIdx:6, scene:['quality','family'] },
+  { id:38, name:'宝格丽', tag:'高端度假·奢华品牌', cat:'luxury', price:5800, score:5.0, stores:6, abbr:'宝格', colorIdx:7, scene:['quality'] },
+  { id:39, name:'华尔道夫', tag:'高端度假·希尔顿旗下', cat:'luxury', price:3200, score:4.9, stores:18, abbr:'华尔', colorIdx:8, scene:['quality'] },
+  { id:40, name:'六善', tag:'高端度假·度假村', cat:'luxury', price:3800, score:4.9, stores:14, abbr:'六善', colorIdx:9, scene:['quality','family'] },
+  // Apartment/Minsu
+  { id:41, name:'亚朵', tag:'公寓民宿·人文风格', cat:'apartment', price:398, score:4.6, stores:820, abbr:'亚朵', colorIdx:10, scene:['quality','business'] },
+  { id:42, name:'漫居', tag:'公寓民宿·长租短租', cat:'apartment', price:288, score:4.4, stores:650, abbr:'漫居', colorIdx:11, scene:['quality'] },
+  { id:43, name:'途家', tag:'公寓民宿·民宿平台', cat:'apartment', price:268, score:4.3, stores:8000, abbr:'途家', colorIdx:12, scene:['quality','family','nearby'] },
+  { id:44, name:'小猪短租', tag:'公寓民宿·个人房源', cat:'apartment', price:218, score:4.2, stores:12000, abbr:'小猪', colorIdx:13, scene:['budget','family'] },
+  { id:45, name:'花间堂', tag:'公寓民宿·精品民宿', cat:'apartment', price:688, score:4.7, stores:380, abbr:'花间', colorIdx:14, scene:['quality','family'] },
+  { id:46, name:'莫泰', tag:'公寓民宿·商务公寓', cat:'apartment', price:248, score:4.2, stores:780, abbr:'莫泰', colorIdx:0, scene:['business','nearby'] },
+  { id:47, name:'方隅', tag:'公寓民宿·设计感', cat:'apartment', price:328, score:4.5, stores:420, abbr:'方隅', colorIdx:1, scene:['quality'] },
+  { id:48, name:'寓见', tag:'公寓民宿·精品长租', cat:'apartment', price:198, score:4.1, stores:550, abbr:'寓见', colorIdx:2, scene:['budget'] },
+  { id:49, name:'鸿坤', tag:'公寓民宿·青年公寓', cat:'apartment', price:228, score:4.3, stores:320, abbr:'鸿坤', colorIdx:3, scene:['budget'] },
+  { id:50, name:'逍遥庐', tag:'公寓民宿·禅意民宿', cat:'apartment', price:588, score:4.6, stores:180, abbr:'逍遥', colorIdx:4, scene:['quality','family'] },
+];
+
+// ===== STATE =====
+let state = {
+  activeCategory: 'all',
+  activeScene: null,
+  searchQuery: '',
+  selectedBrand: null,
+  compareBrands: [],
+};
+
+// ===== UTILS =====
+function getBrandColor(idx) { return BRAND_COLORS[idx % BRAND_COLORS.length]; }
+function lightenColor(hex, amt) {
+  const num = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, (num >> 16) + amt);
+  const g = Math.min(255, ((num >> 8) & 0xff) + amt);
+  const b = Math.min(255, (num & 0xff) + amt);
+  return `rgb(${r},${g},${b})`;
+}
+function formatPrice(p) {
+  if (p >= 1000) return `${(p/100|0)*100}+`;
+  return p;
+}
+function formatStores(n) {
+  if (n >= 10000) return `${(n/1000).toFixed(1)}万家`;
+  if (n >= 1000) return `${(n/1000).toFixed(1)}k家`;
+  return `${n}家`;
+}
+
+let toastTimer;
+function showToast(msg, duration = 2000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ===== RENDER SCENES =====
+function renderScenes() {
+  const grid = document.getElementById('scenesGrid');
+  grid.innerHTML = SCENES.map(s => `
+    <div class="scene-chip ${state.activeScene === s.id ? 'active' : ''}" onclick="selectScene('${s.id}')">
+      <div class="scene-icon-wrap">${s.icon}</div>
+      <span class="scene-label">${s.label}</span>
+    </div>
+  `).join('');
+}
+
+// ===== RENDER CATEGORY TABS =====
+function renderCatTabs() {
+  const tabs = document.getElementById('catTabs');
+  const counts = {};
+  CATEGORIES.forEach(c => {
+    counts[c.id] = c.id === 'all' ? BRANDS.length : BRANDS.filter(b => b.cat === c.id).length;
+  });
+  tabs.innerHTML = CATEGORIES.map(c => `
+    <button class="cat-tab ${state.activeCategory === c.id ? 'active' : ''}" onclick="selectCategory('${c.id}')">
+      ${c.label}<span class="cat-tab-count">${counts[c.id]}</span>
+    </button>
+  `).join('');
+}
+
+// ===== FILTER BRANDS =====
+function getFilteredBrands() {
+  let list = BRANDS;
+  // Scene filter
+  if (state.activeScene) {
+    const scene = SCENES.find(s => s.id === state.activeScene);
+    if (scene) {
+      list = list.filter(b => b.scene && b.scene.includes(state.activeScene));
+    }
+  }
+  // Category filter
+  if (state.activeCategory !== 'all') {
+    list = list.filter(b => b.cat === state.activeCategory);
+  }
+  // Search filter
+  if (state.searchQuery) {
+    const q = state.searchQuery.toLowerCase();
+    list = list.filter(b =>
+      b.name.toLowerCase().includes(q) ||
+      b.tag.toLowerCase().includes(q) ||
+      b.abbr.toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+// ===== RENDER BRAND WALL =====
+function renderBrandWall() {
+  const wall = document.getElementById('brandWall');
+  const empty = document.getElementById('emptyState');
+  const filtered = getFilteredBrands();
+
+  if (filtered.length === 0) {
+    wall.innerHTML = '';
+    empty.classList.add('show');
+    updateBottomBar();
+    return;
+  }
+  empty.classList.remove('show');
+
+  // Group by category if showing all
+  if (state.activeCategory === 'all' && !state.searchQuery && !state.activeScene) {
+    const groups = [
+      { id: 'economy', label: '经济连锁 · Economy' },
+      { id: 'comfort', label: '舒适精选 · Comfort' },
+      { id: 'upscale', label: '中高端 · Upscale' },
+      { id: 'luxury', label: '高端度假 · Luxury' },
+      { id: 'apartment', label: '公寓民宿 · Apartment' },
+    ];
+    wall.innerHTML = groups.map(g => {
+      const brands = filtered.filter(b => b.cat === g.id);
+      if (!brands.length) return '';
+      return `
+        <div class="brand-group">
+          <div class="brand-group-label">${g.label}</div>
+          <div class="brands-grid">
+            ${brands.map((b, i) => renderBrandCard(b, i)).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    // Flat list
+    const label = state.activeScene
+      ? SCENES.find(s => s.id === state.activeScene)?.label + ' 推荐品牌'
+      : state.searchQuery
+        ? `"${state.searchQuery}" 相关品牌`
+        : CATEGORIES.find(c => c.id === state.activeCategory)?.label;
+    wall.innerHTML = `
+      <div class="brand-group">
+        <div class="brand-group-label">${label || ''} · ${filtered.length} 个</div>
+        <div class="brands-grid">
+          ${filtered.map((b, i) => renderBrandCard(b, i)).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Apply animation delay
+  wall.querySelectorAll('.brand-card').forEach((el, i) => {
+    el.style.animationDelay = `${i * 0.04}s`;
+  });
+
+  updateBottomBar();
+}
+
+function renderBrandCard(b, idx) {
+  const color = getBrandColor(b.colorIdx);
+  const isSelected = state.selectedBrand === b.id;
+  const isCompared = state.compareBrands.includes(b.id);
+  const q = state.searchQuery;
+  let displayName = b.name;
+  if (q) {
+    const re = new RegExp(`(${q})`, 'gi');
+    displayName = b.name.replace(re, '<span class="highlight">$1</span>');
+  }
+  return `
+    <div class="brand-card ${isSelected ? 'selected' : ''} ${isCompared ? 'compared' : ''}"
+      id="card-${b.id}"
+      onclick="selectBrand(${b.id}, event)"
+      style="animation-delay: ${idx * 0.04}s"
+    >
+      <div class="card-selected-badge">✓</div>
+      <div class="card-compare-btn" onclick="toggleCompare(${b.id}, event)">${isCompared ? '✓' : '+'}</div>
+      <div class="brand-icon-wrap" style="background: linear-gradient(135deg, ${color}, ${lightenColor(color, 40)})">
+        ${b.abbr}
+      </div>
+      <div class="brand-name">${displayName}</div>
+      <span class="brand-tag">${b.tag}</span>
+      <div class="brand-stats">
+        <div class="brand-price">¥${formatPrice(b.price)}<span>/晚起</span></div>
+        <div class="brand-score">${b.score}</div>
+      </div>
+      <div style="font-size:10px; color:var(--text-muted); text-align:right; margin-top:3px;">附近 ${formatStores(b.stores)}</div>
+    </div>
+  `;
+}
+
+// ===== SELECT BRAND =====
+function selectBrand(id, event) {
+  if (event && event.target.classList.contains('card-compare-btn')) return;
+  const brand = BRANDS.find(b => b.id === id);
+  if (!brand) return;
+
+  if (state.selectedBrand === id) {
+    clearSelection();
+    return;
+  }
+  // Deselect old
+  if (state.selectedBrand) {
+    const oldCard = document.getElementById(`card-${state.selectedBrand}`);
+    if (oldCard) oldCard.classList.remove('selected');
+  }
+  state.selectedBrand = id;
+  const card = document.getElementById(`card-${id}`);
+  if (card) card.classList.add('selected');
+
+  updateFocusCard(brand);
+  updateBottomBar();
+}
+
+function clearSelection() {
+  if (state.selectedBrand) {
+    const card = document.getElementById(`card-${state.selectedBrand}`);
+    if (card) card.classList.remove('selected');
+  }
+  state.selectedBrand = null;
+  updateFocusCard(null);
+  updateBottomBar();
+}
+
+function updateFocusCard(brand) {
+  const card = document.getElementById('focusCard');
+  if (!brand) {
+    card.classList.remove('show');
+    return;
+  }
+  const color = getBrandColor(brand.colorIdx);
+  document.getElementById('focusIcon').style.background = `linear-gradient(135deg, ${color}, ${lightenColor(color, 40)})`;
+  document.getElementById('focusIcon').textContent = brand.abbr;
+  document.getElementById('focusName').textContent = brand.name;
+  document.getElementById('focusMeta').textContent = `${brand.tag} · ¥${brand.price}起 · ★${brand.score} · ${formatStores(brand.stores)}可订`;
+  card.classList.add('show');
+}
+
+// ===== UPDATE BOTTOM BAR =====
+function updateBottomBar() {
+  const def = document.getElementById('bottomDefault');
+  const sel = document.getElementById('bottomSelected');
+  const hint = document.getElementById('bottomHint');
+  const filtered = getFilteredBrands();
+
+  if (state.selectedBrand) {
+    const brand = BRANDS.find(b => b.id === state.selectedBrand);
+    def.style.display = 'none';
+    sel.style.display = 'flex';
+    document.getElementById('bottomBrandName').textContent = brand?.name || '';
+  } else {
+    def.style.display = 'flex';
+    sel.style.display = 'none';
+    hint.textContent = `共 ${filtered.length} 个品牌`;
+  }
+}
+
+// ===== VIEW STORES =====
+function viewStores() {
+  const brand = BRANDS.find(b => b.id === state.selectedBrand);
+  if (brand) {
+    showToast(`正在进入「${brand.name}」门店列表…`);
+  }
+}
+
+// ===== SCENE SELECT =====
+function selectScene(sceneId) {
+  if (state.activeScene === sceneId) {
+    state.activeScene = null;
+  } else {
+    state.activeScene = sceneId;
+    state.activeCategory = 'all';
+    renderCatTabs();
+    const s = SCENES.find(x => x.id === sceneId);
+    showToast(`已筛选：${s?.label}`);
+  }
+  renderScenes();
+  renderBrandWall();
+}
+
+function clearScene() {
+  state.activeScene = null;
+  renderScenes();
+  renderBrandWall();
+}
+
+// ===== CATEGORY SELECT =====
+function selectCategory(catId) {
+  state.activeCategory = catId;
+  state.activeScene = null;
+  renderScenes();
+  renderCatTabs();
+  renderBrandWall();
+}
+
+// ===== SEARCH =====
+function handleSearch(val) {
+  state.searchQuery = val.trim();
+  const clear = document.getElementById('searchClear');
+  if (val.length > 0) {
+    clear.classList.add('show');
+  } else {
+    clear.classList.remove('show');
+  }
+  renderBrandWall();
+}
+
+function clearSearch() {
+  const input = document.getElementById('searchInput');
+  input.value = '';
+  handleSearch('');
+  input.focus();
+}
+
+// ===== COMPARE =====
+function toggleCompare(id, event) {
+  event.stopPropagation();
+  if (state.compareBrands.includes(id)) {
+    state.compareBrands = state.compareBrands.filter(x => x !== id);
+    showToast('已移出对比');
+  } else {
+    if (state.compareBrands.length >= 3) {
+      showToast('最多对比 3 个品牌');
+      return;
+    }
+    state.compareBrands.push(id);
+    const brand = BRANDS.find(b => b.id === id);
+    showToast(`「${brand?.name}」已加入对比`);
+  }
+  updateCompareBar();
+  // Update card UI
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    if (state.compareBrands.includes(id)) {
+      card.classList.add('compared');
+      card.querySelector('.card-compare-btn').textContent = '✓';
+    } else {
+      card.classList.remove('compared');
+      card.querySelector('.card-compare-btn').textContent = '+';
+    }
+  }
+}
+
+function removeFromCompare(id) {
+  state.compareBrands = state.compareBrands.filter(x => x !== id);
+  updateCompareBar();
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    card.classList.remove('compared');
+    const btn = card.querySelector('.card-compare-btn');
+    if (btn) btn.textContent = '+';
+  }
+}
+
+function updateCompareBar() {
+  const bar = document.getElementById('compareBar');
+  const btn = document.getElementById('btnCompare');
+  const slots = document.getElementById('compareSlots');
+
+  if (state.compareBrands.length === 0) {
+    bar.classList.remove('show');
+    return;
+  }
+  bar.classList.add('show');
+  btn.disabled = state.compareBrands.length < 2;
+
+  const slotHTML = [0,1,2].map(i => {
+    const id = state.compareBrands[i];
+    if (id) {
+      const b = BRANDS.find(x => x.id === id);
+      return `<div class="compare-slot filled">
+        <span class="compare-slot-name">${b?.name}</span>
+        <div class="compare-slot-remove" onclick="removeFromCompare(${id})">×</div>
+      </div>`;
+    }
+    return `<div class="compare-slot">+品牌</div>`;
+  }).join('');
+  slots.innerHTML = slotHTML;
+}
+
+function openCompareModal() {
+  if (state.compareBrands.length < 2) {
+    showToast('请先选择 2~3 个品牌进行对比');
+    return;
+  }
+  const brands = state.compareBrands.map(id => BRANDS.find(b => b.id === id));
+
+  const headers = brands.map(b => {
+    const color = getBrandColor(b.colorIdx);
+    return `<th>
+      <div class="compare-col-header">
+        <div class="compare-col-icon" style="background: linear-gradient(135deg, ${color}, ${lightenColor(color, 40)})">${b.abbr}</div>
+        <span style="font-size:12px;color:var(--text-primary);font-weight:700;">${b.name}</span>
+      </div>
+    </th>`;
+  }).join('');
+
+  const minPrice = Math.min(...brands.map(b => b.price));
+  const maxScore = Math.max(...brands.map(b => b.score));
+  const maxStores = Math.max(...brands.map(b => b.stores));
+
+  const priceRow = brands.map(b => `<td class="${b.price === minPrice ? 'compare-best' : 'compare-highlight'}">¥${formatPrice(b.price)}<br><small style="font-weight:400;color:var(--text-muted)">起/晚</small></td>`).join('');
+  const scoreRow = brands.map(b => `<td class="${b.score === maxScore ? 'compare-best' : ''}">★ ${b.score}</td>`).join('');
+  const storeRow = brands.map(b => `<td class="${b.stores === maxStores ? 'compare-best' : ''}">${formatStores(b.stores)}</td>`).join('');
+  const tagRow = brands.map(b => `<td style="font-size:11px;color:var(--text-secondary)">${b.tag.split('·')[0]}</td>`).join('');
+
+  const html = `
+    <table class="compare-table">
+      <thead><tr><th class="row-label">指标</th>${headers}</tr></thead>
+      <tbody>
+        <tr><td class="row-label">起价</td>${priceRow}</tr>
+        <tr><td class="row-label">评分</td>${scoreRow}</tr>
+        <tr><td class="row-label">门店数</td>${storeRow}</tr>
+        <tr><td class="row-label">定位</td>${tagRow}</tr>
+      </tbody>
+    </table>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:10px;text-align:center"><span style="color:var(--green);font-weight:700">绿色</span>为最优项</p>
+  `;
+  document.getElementById('compareTableWrap').innerHTML = html;
+  document.getElementById('compareModal').classList.add('show');
+}
+
+function closeCompareModal(event) {
+  if (!event || event.target === document.getElementById('compareModal')) {
+    document.getElementById('compareModal').classList.remove('show');
+  }
+}
+
+// ===== SHOW ALL BRANDS =====
+function showAllBrands() {
+  state.activeCategory = 'all';
+  state.activeScene = null;
+  state.searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').classList.remove('show');
+  renderScenes();
+  renderCatTabs();
+  renderBrandWall();
+}
+
+// ===== INIT =====
+function init() {
+  renderScenes();
+  renderCatTabs();
+  renderBrandWall();
+}
+
+init();
+</script>
+</body>
+</html>

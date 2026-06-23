@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>干饭吧定位功能优化原型</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+      background: linear-gradient(135deg, #f8faf6 0%, #fff7e8 48%, #f2f7ff 100%);
+      color: #222;
+    }
+    .page {
+      min-height: 100vh;
+      padding: 28px 18px 40px;
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      align-items: flex-start;
+    }
+    .doc-panel {
+      width: 360px;
+      max-width: 100%;
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: 24px;
+      box-shadow: 0 18px 45px rgba(40,48,28,.08);
+      padding: 22px;
+      position: sticky;
+      top: 24px;
+    }
+    .doc-panel h1 {
+      font-size: 22px;
+      line-height: 1.25;
+      margin: 0 0 12px;
+      letter-spacing: -.2px;
+    }
+    .doc-panel p {
+      margin: 0 0 16px;
+      color: #59604f;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 18px 0;
+    }
+    .status-card {
+      border: 1px solid rgba(0,0,0,.07);
+      background: #fff;
+      border-radius: 16px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all .18s ease;
+      min-height: 88px;
+    }
+    .status-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(0,0,0,.07);
+    }
+    .status-card.active {
+      border-color: #243313;
+      background: #f7ffe8;
+      box-shadow: inset 0 0 0 1px #243313;
+    }
+    .status-card b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 7px;
+    }
+    .status-card span {
+      display: block;
+      color: #69705f;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .legend {
+      background: #243313;
+      color: #fff;
+      border-radius: 18px;
+      padding: 16px;
+      margin-top: 18px;
+    }
+    .legend h3 {
+      font-size: 15px;
+      margin: 0 0 10px;
+    }
+    .legend ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: rgba(255,255,255,.88);
+    }
+    .phone-wrap {
+      width: 390px;
+      max-width: calc(100vw - 36px);
+      position: relative;
+    }
+    .phone {
+      width: 390px;
+      max-width: 100%;
+      height: 780px;
+      border-radius: 36px;
+      background: #f7f8f2;
+      overflow: hidden;
+      box-shadow: 0 28px 70px rgba(32, 41, 20, .22);
+      border: 9px solid #111;
+      position: relative;
+    }
+    .screen {
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      background: #f9faf5;
+    }
+    .top-bg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 205px;
+      background: linear-gradient(160deg, #243313 0%, #526c27 58%, #ffcb55 100%);
+      border-bottom-left-radius: 34px;
+      border-bottom-right-radius: 34px;
+    }
+    .safe-top {
+      height: 44px;
+      position: relative;
+      z-index: 2;
+    }
+    .home-header {
+      position: relative;
+      z-index: 3;
+      padding: 0 18px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+    .location-trigger {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      color: white;
+      padding: 8px 10px 8px 4px;
+      border-radius: 15px;
+      cursor: pointer;
+      max-width: 230px;
+      transition: background .18s ease;
+    }
+    .location-trigger:hover {
+      background: rgba(255,255,255,.12);
+    }
+    .pin {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      margin-top: 2px;
+      flex: 0 0 auto;
+    }
+    .loc-title {
+      font-weight: 800;
+      font-size: 15px;
+      line-height: 1.2;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      max-width: 184px;
+    }
+    .loc-sub {
+      margin-top: 5px;
+      font-size: 11px;
+      line-height: 1.1;
+      color: rgba(255,255,255,.82);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .chev {
+      font-size: 11px;
+      transform: translateY(-1px);
+    }
+    .header-actions {
+      display: flex;
+      gap: 9px;
+      padding-top: 8px;
+    }
+    .circle-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      backdrop-filter: blur(6px);
+    }
+    .hero-card {
+      margin: 24px 18px 0;
+      position: relative;
+      z-index: 2;
+      border-radius: 24px;
+      padding: 20px;
+      min-height: 124px;
+      background:
+        radial-gradient(circle at 88% 28%, rgba(255,203,85,.7) 0 23px, transparent 24px),
+        linear-gradient(135deg, #fffdf7 0%, #fff3d5 100%);
+      box-shadow: 0 15px 30px rgba(55, 66, 32, .12);
+      overflow: hidden;
+    }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      width: 118px;
+      height: 118px;
+      right: -26px;
+      bottom: -38px;
+      border-radius: 50%;
+      background: rgba(36,51,19,.08);
+    }
+    .hero-card h2 {
+      margin: 0 0 8px;
+      color: #243313;
+      font-size: 22px;
+      letter-spacing: -.2px;
+    }
+    .hero-card p {
+      margin: 0;
+      color: #6c6a55;
+      font-size: 13px;
+      line-height: 1.45;
+      max-width: 245px;
+    }
+    .hero-tags {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .hero-tags span {
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: #243313;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .content {
+      padding: 16px 18px 84px;
+      height: calc(100% - 204px);
+      overflow-y: auto;
+      position: relative;
+      z-index: 2;
+    }
+    .content::-webkit-scrollbar {
+      width: 0;
+    }
+    .notice {
+      border-radius: 17px;
+      padding: 12px 13px;
+      margin: 0 0 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.06);
+      box-shadow: 0 8px 18px rgba(40,48,28,.05);
+    }
+    .notice.warning {
+      background: #fff7e6;
+      border-color: rgba(240, 161, 0, .25);
+    }
+    .notice.good {
+      background: #f1f9e9;
+      border-color: rgba(85, 139, 33, .22);
+    }
+    .notice-text b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .notice-text span {
+      color: #6d725f;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .mini-btn {
+      white-space: nowrap;
+      border: none;
+      background: #243313;
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-weight: 800;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .section-title {
+      margin: 18px 0 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .section-title h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #243313;
+    }
+    .section-title small {
+      color: #8b907e;
+      font-size: 11px;
+    }
+    .restaurant-card, .deal-card {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 9px 20px rgba(40,48,28,.06);
+      margin-bottom: 11px;
+      border: 1px solid rgba(0,0,0,.045);
+    }
+    .food-img {
+      width: 74px;
+      height: 74px;
+      border-radius: 17px;
+      background: linear-gradient(135deg, #ffe29f 0%, #ff8e57 100%);
+      flex: 0 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+    .food-img.alt {
+      background: linear-gradient(135deg, #d6f7ab 0%, #4db06d 100%);
+    }
+    .food-img.third {
+      background: linear-gradient(135deg, #ffd0d0 0%, #cf4c34 100%);
+    }
+    .food-img::before {
+      content: "";
+      position: absolute;
+      inset: 16px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.62);
+      box-shadow: 0 0 0 9px rgba(255,255,255,.22);
+    }
+    .card-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .card-main h4 {
+      margin: 2px 0 6px;
+      font-size: 15px;
+      color: #202717;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .meta-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      color: #7a7f6d;
+      font-size: 11px;
+      line-height: 1.4;
+      margin-bottom: 7px;
+    }
+    .badge {
+      padding: 3px 6px;
+      border-radius: 7px;
+      background: #f2f4ec;
+      color: #69705d;
+      font-weight: 700;
+    }
+    .price-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .price {
+      color: #ef4d2f;
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .price small {
+      font-size: 11px;
+    }
+    .go-btn {
+      border: none;
+      background: #ffcf4a;
+      color: #243313;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-weight: 900;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .tabs {
+      position: absolute;
+      z-index: 20;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 69px;
+      background: rgba(255,255,255,.96);
+      border-top: 1px solid rgba(0,0,0,.06);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding-bottom: 8px;
+      backdrop-filter: blur(12px);
+    }
+    .tab {
+      display: grid;
+      gap: 3px;
+      place-items: center;
+      color: #8c907e;
+      font-size: 11px;
+      min-width: 58px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .tab i {
+      width: 25px;
+      height: 25px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-style: normal;
+      font-size: 15px;
+    }
+    .tab.active {
+      color: #243313;
+    }
+    .tab.active i {
+      background: #eff9df;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.42);
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s ease;
+    }
+    .overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drawer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 60;
+      background: #fff;
+      border-top-left-radius: 28px;
+      border-top-right-radius: 28px;
+      padding: 11px 18px 20px;
+      transform: translateY(105%);
+      transition: transform .26s ease;
+      box-shadow: 0 -18px 45px rgba(0,0,0,.18);
+      max-height: 86%;
+      overflow-y: auto;
+    }
+    .drawer.show {
+      transform: translateY(0);
+    }
+    .handle {
+      width: 42px;
+      height: 5px;
+      border-radius: 99px;
+      background: #d7d9d0;
+      margin: 0 auto 15px;
+    }
+    .drawer-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .drawer-head h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      color: #243313;
+    }
+    .drawer-head p {
+      margin: 0;
+      color: #767b68;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .close {
+      border: none;
+      background: #f2f3ee;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      color: #6d715f;
+      cursor: pointer;
+    }
+    .choice-card {
+      border-radius: 20px;
+      border: 1px solid rgba(0,0,0,.07);
+      padding: 15px;
+      margin-bottom: 12px;
+      background: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .choice-card.recommend {
+      background: linear-gradient(135deg, #f4ffe8 0%, #fff8dc 100%);
+      border-color: rgba(36,51,19,.18);
+      box-shadow: 0 12px 28px rgba(36,51,19,.08);
+    }
+    .recommend-tag {
+      position: absolute;
+      right: 13px;
+      top: 13px;
+      border-radius: 999px;
+      background: #243313;
+      color: #fff;
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: 900;
+    }
+    .choice-card h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      color: #222;
+    }
+    .choice-card p {
+      margin: 0 0 12px;
+      color: #68705d;
+      font-size: 12px;
+      line-height: 1.55;
+      max-width: 250px;
+    }
+    .choice-card .privacy {
+      color: #8b907d;
+      font-size: 11px;
+      background: rgba(255,255,255,.72);
+      border-radius: 10px;
+      padding: 7px 9px;
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+    .primary-action, .secondary-action, .plain-action {
+      width: 100%;
+      border-radius: 15px;
+      height: 43px;
+      border: none;
+      font-weight: 900;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .primary-action {
+      background: #243313;
+      color: white;
+    }
+    .secondary-action {
+      background: #fff;
+      color: #243313;
+      border: 1px solid rgba(36,51,19,.18);
+    }
+    .plain-action {
+      background: #f4f4f0;
+      color: #66705a;
+    }
+    .mini-modal {
+      position: absolute;
+      z-index: 90;
+      left: 30px;
+      right: 30px;
+      top: 245px;
+      background: #fff;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 25px 65px rgba(0,0,0,.2);
+      transform: scale(.96);
+      opacity: 0;
+      pointer-events: none;
+      transition: all .2s ease;
+    }
+    .mini-modal.show {
+      transform: scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .mini-modal h3 {
+      margin: 0 0 8px;
+      color: #243313;
+      font-size: 19px;
+    }
+    .mini-modal p {
+      margin: 0 0 16px;
+      color: #68705e;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .modal-actions {
+      display: grid;
+      gap: 10px;
+    }
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: 90px;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(32,37,28,.9);
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 14px;
+      z-index: 120;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all .22s ease;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .map-panel {
+      position: absolute;
+      z-index: 88;
+      inset: 92px 18px 84px;
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 25px 65px rgba(0,0,0,.18);
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px);
+      transition: all .22s ease;
+    }
+    .map-panel.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .map-head {
+      padding: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid #efefeb;
+    }
+    .search-box {
+      flex: 1;
+      height: 38px;
+      background: #f5f6f2;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      color: #777d6c;
+      font-size: 13px;
+    }
+    .map-close {
+      border: none;
+      width: 32px;
+      height: 32px;
+      background: #f3f4ef;
+      border-radius: 50%;
+    }
+    .fake-map {
+      height: 190px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.28) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.28) 1px, transparent 1px),
+        linear-gradient(135deg, #dff2ce 0%, #c9e3f7 100%);
+      background-size: 38px 38px, 38px 38px, auto;
+      position: relative;
+    }
+    .map-pin {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -92%);
+      font-size: 35px;
+      filter: drop-shadow(0 8px 9px rgba(0,0,0,.2));
+    }
+    .map-locate {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      border: none;
+      background: #fff;
+      border-radius: 15px;
+      padding: 9px 11px;
+      font-weight: 900;
+      color: #243313;
+      box-shadow: 0 8px 18px rgba(0,0,0,.12);
+    }
+    .address-list {
+      padding: 12px 14px 16px;
+    }
+    .address-item {
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0ec;
+      cursor: pointer;
+    }
+    .address-item:last-child {
+      border-bottom: none;
+    }
+    .address-item b {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+      color: #222;
+    }
+    .address-item span {
+      display: block;
+      font-size: 12px;
+      color: #747967;
+      line-height: 1.35;
+    }
+    .city-panel {
+      position: absolute;
+      z-index: 88;
+      inset: auto 18px 84px;
+      bottom: 90px;
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 25px 65px rgba(0,0,0,.18);
+      padding: 18px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px);
+      transition: all .22s ease;
+    }
+    .city-panel.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .city-panel h3 {
+      margin: 0 0 8px;
+      color: #243313;
+    }
+    .city-panel p {
+      margin: 0 0 14px;
+      color: #757b68;
+      line-height: 1.55;
+      font-size: 13px;
+    }
+    .city-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+    .city-tags button {
+      border: 1px solid #ebece6;
+      background: #f7f8f4;
+      border-radius: 999px;
+      padding: 9px 12px;
+      font-weight: 800;
+      color: #333;
+      cursor: pointer;
+    }
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 8px 11px;
+      background: #fff;
+      color: #243313;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: 0 8px 18px rgba(40,48,28,.08);
+      margin-bottom: 10px;
+    }
+    .hidden {
+      display: none !important;
+    }
+    @media (max-width: 860px) {
+      .page {
+        flex-direction: column;
+        align-items: center;
+      }
+      .doc-panel {
+        position: relative;
+        top: 0;
+        width: 390px;
+      }
+      .phone {
+        height: 760px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="doc-panel">
+      <h1>定位功能优化原型</h1>
+      <p>核心目标：引导用户优先开启精准定位；拒绝授权时提供“地图选点”兜底；城市选择只作为浏览降级，不参与附近推荐。</p>
+
+      <div class="status-grid">
+        <div class="status-card active" data-state="gps">
+          <b>精准定位</b>
+          <span>适合附近餐厅、外卖商品、配送距离与可购判断。</span>
+        </div>
+        <div class="status-card" data-state="manual">
+          <b>手动选点</b>
+          <span>用户不授权时，用地图选择具体地址并获得经纬度。</span>
+        </div>
+        <div class="status-card" data-state="city">
+          <b>城市级兜底</b>
+          <span>只能看城市内容，不应伪装成附近推荐。</span>
+        </div>
+        <div class="status-card" data-state="none">
+          <b>未定位</b>
+          <span>首页、餐厅页、平价优选页都应提示开启定位。</span>
+        </div>
+      </div>
+
+      <div class="legend">
+        <h3>原型可点击区域</h3>
+        <ul>
+          <li>点击手机左上角定位入口，打开半屏抽屉。</li>
+          <li>点击“一键获取精准定位”，查看授权解释弹窗。</li>
+          <li>点击“在地图上选择”，体验手动精确位置兜底。</li>
+          <li>底部可切换首页、餐厅、平价优选。</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="phone-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="top-bg"></div>
+          <div class="safe-top"></div>
+
+          <header class="home-header">
+            <div class="location-trigger" id="openDrawer">
+              <div class="pin">📍</div>
+              <div>
+                <div class="loc-title" id="locTitle">徐州工程学院附近</div>
+                <div class="loc-sub"><span id="locSub">精准定位 · 附近推荐</span><span class="chev">▾</span></div>
+              </div>
+            </div>
+            <div class="header-actions">
+              <div class="circle-btn">🔍</div>
+              <div class="circle-btn">⋯</div>
+            </div>
+          </header>
+
+          <section class="hero-card" id="hero">
+            <h2>吃什么，不再纠结</h2>
+            <p>基于当前位置，为你推荐附近可配送餐厅与可购买优惠商品。</p>
+            <div class="hero-tags">
+              <span>附近餐厅</span>
+              <span>平价优选</span>
+              <span>外卖红包</span>
+            </div>
+          </section>
+
+          <section class="content" id="homeView">
+            <div class="notice good" id="homeNotice">
+              <div class="notice-text">
+                <b>已开启精准定位</b>
+                <span>推荐结果将优先匹配你附近可配送餐厅和优惠商品。</span>
+              </div>
+              <button class="mini-btn" id="noticeAction">更新定位</button>
+            </div>
+
+            <div class="section-title">
+              <h3 id="restaurantTitle">附近推荐餐厅</h3>
+              <small id="restaurantDesc">基于当前位置</small>
+            </div>
+
+            <div class="restaurant-card">
+              <div class="food-img"></div>
+              <div class="card-main">
+                <h4>张亮麻辣烫 · 学院路店</h4>
+                <div class="meta-line">
+                  <span class="badge" id="distanceOne">距你 0.8km</span>
+                  <span>35分钟</span>
+                  <span>起送 ¥15</span>
+                </div>
+                <div class="price-row">
+                  <span class="price"><small>券后</small> ¥18.9</span>
+                  <button class="go-btn">去下单</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="restaurant-card">
+              <div class="food-img alt"></div>
+              <div class="card-main">
+                <h4>谷田稻香 · 万达广场店</h4>
+                <div class="meta-line">
+                  <span class="badge" id="distanceTwo">距你 1.4km</span>
+                  <span>42分钟</span>
+                  <span>月售 900+</span>
+                </div>
+                <div class="price-row">
+                  <span class="price"><small>套餐</small> ¥24.8</span>
+                  <button class="go-btn">去下单</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-title">
+              <h3 id="dealTitle">附近可买优惠商品</h3>
+              <small>美团 / 饿了么承接</small>
+            </div>
+
+            <div class="deal-card">
+              <div class="food-img third"></div>
+              <div class="card-main">
+                <h4>黄焖鸡米饭单人套餐</h4>
+                <div class="meta-line">
+                  <span class="badge" id="dealDistance">可配送</span>
+                  <span>已售 1.2万</span>
+                  <span>评分 4.8</span>
+                </div>
+                <div class="price-row">
+                  <span class="price"><small>到手</small> ¥12.9</span>
+                  <button class="go-btn">领券</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="content hidden" id="restaurantView">
+            <div class="state-pill" id="restaurantStatePill">📍 精准定位 · 附近推荐</div>
+            <div class="notice good" id="restaurantNotice">
+              <div class="notice-text">
+                <b>附近推荐餐厅</b>
+                <span>已基于你的当前位置筛选可配送、距离更近的餐厅。</span>
+              </div>
+              <button class="mini-btn open-location">切换</button>
+            </div>
+            <div class="section-title">
+              <h3 id="restaurantPageTitle">附近推荐餐厅</h3>
+              <small id="restaurantPageSub">按距离和可配送优先</small>
+            </div>
+            <div class="restaurant-card">
+              <div class="food-img"></div>
+              <div class="card-main">
+                <h4>老乡鸡 · 云龙万达店</h4>
+                <div class="meta-line">
+                  <span class="badge page-distance">距你 0.7km</span>
+                  <span>配送约 30分钟</span>
+                </div>
+                <div class="price-row">
+                  <span class="price"><small>人均</small> ¥22</span>
+                  <button class="go-btn">查看</button>
+                </div>
+              </div>
+            </div>
+            <div class="restaurant-card">
+              <div class="food-img alt"></div>
+              <div class="card-main">
+                <h4>鱼你在一起 · 学院路店</h4>
+                <div class="meta-line">
+                  <span class="badge page-distance">距你 1.2km</span>
+                  <span>支持外卖</span>
+                </div>
+                <div class="price-row">
+                  <span class="price"><small>人均</small> ¥28</span>
+                  <button class="go-btn">查看</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="content hidden" id="dealView">
+            <div class="state-pill" id="dealStatePill">📍 精准定位 · 附近可买</div>
+            <div class="notice good" id="dealNotice">
+              <div class="notice-text">
+                <b>附近可买优惠商品</b>
+                <span>优先展示当前位置附近可配送、可购买的商品。</span>
+              </div>
+              <button class="mini-btn open-location">切换</button>
+            </div>
+            <div class="section-title">
+              <h3 id="dealPageTitle">附近可买优惠商品</h3>
+              <small id="dealPageSub">外卖 / 到店</small>
+            </div>
+
+            <div class="deal-card">
+              <div class="food-img third"></div>
+              <div class="card-main">
+                <h4>华莱士双人炸鸡套餐</h4>
+                <div class="meta-line">
+                  <span class="badge deal-page-badge">可配送</span>
+                  <span>配送费 ¥2</span>
+                  <span>35分钟</span>
+                </div>
+                <div class="price-row">
+                  <span class="price"><small>券后</small> ¥19.9</span>
+                  <button class="go-btn">领券</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="deal-card">
+              <div class="food-img"></div>
+              <div class="card-main">
+                <h4>蜜雪冰城满减红包</h4>
+                <div class="meta-line">
+                  <span class="badge deal-page-badge">附近门店可用</span>
+                  <span>已领 5万+</span>
+                </div>
+                <div class="price-row">
+                  <span class="price"><small>红包</small> ¥6</span>
+                  <button class="go-btn">领取</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <nav class="tabs">
+            <div class="tab active" data-view="home"><i>🏠</i><span>首页</span></div>
+            <div class="tab" data-view="restaurant"><i>🍽️</i><span>餐厅</span></div>
+            <div class="tab" data-view="deal"><i>券</i><span>平价优选</span></div>
+            <div class="tab" data-view="mine"><i>👤</i><span>我的</span></div>
+          </nav>
+
+          <div class="overlay" id="overlay"></div>
+
+          <section class="drawer" id="drawer">
+            <div class="handle"></div>
+            <div class="drawer-head">
+              <div>
+                <h2>选择当前位置</h2>
+                <p>用于推荐附近可配送餐厅和可购买优惠商品</p>
+              </div>
+              <button class="close" id="closeDrawer">×</button>
+            </div>
+
+            <div class="choice-card recommend">
+              <span class="recommend-tag">推荐</span>
+              <h3>使用当前位置</h3>
+              <p>获取精准位置，推荐更准确。适合附近餐厅、配送商品、团购可用性判断。</p>
+              <span class="privacy">仅用于附近推荐，不展示你的具体位置</span>
+              <button class="primary-action" id="autoLocation">一键获取精准定位</button>
+            </div>
+
+            <div class="choice-card">
+              <h3>手动选择位置</h3>
+              <p>不想授权定位？也可以在地图上选择你附近的位置，同样可以获得经纬度。</p>
+              <button class="secondary-action" id="manualMap">在地图上选择</button>
+            </div>
+
+            <div class="choice-card">
+              <h3>仅选择城市浏览</h3>
+              <p>只能查看本城市内容，附近餐厅和外卖商品可能不准确。</p>
+              <button class="plain-action" id="cityOnly">选择城市</button>
+            </div>
+          </section>
+
+          <section class="mini-modal" id="permissionModal">
+            <h3>开启精准定位</h3>
+            <p>开启后，可以为你推荐附近可配送餐厅和可购买优惠商品。我们不会展示你的具体位置，仅用于本次附近推荐。</p>
+            <div class="modal-actions">
+              <button class="primary-action" id="allowLocation">开启精准定位</button>
+              <button class="secondary-action" id="rejectLocation">暂不授权，手动选择</button>
+            </div>
+          </section>
+
+          <section class="map-panel" id="mapPanel">
+            <div class="map-head">
+              <div class="search-box">搜索小区、学校、写字楼</div>
+              <button class="map-close" id="closeMap">×</button>
+            </div>
+            <div class="fake-map">
+              <div class="map-pin">📍</div>
+              <button class="map-locate">重新定位</button>
+            </div>
+            <div class="address-list">
+              <div class="address-item" data-name="云龙万达广场附近" data-sub="手动位置 · 附近推荐">
+                <b>云龙万达广场</b>
+                <span>徐州市云龙区和平大道58号</span>
+              </div>
+              <div class="address-item" data-name="徐州工程学院附近" data-sub="手动位置 · 附近推荐">
+                <b>徐州工程学院</b>
+                <span>徐州市云龙区丽水路2号</span>
+              </div>
+              <div class="address-item" data-name="徐州市中心医院附近" data-sub="手动位置 · 附近推荐">
+                <b>徐州市中心医院</b>
+                <span>徐州市泉山区解放南路199号</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="city-panel" id="cityPanel">
+            <h3>选择城市浏览</h3>
+            <p>城市级定位仅用于浏览本城市内容，不建议用于附近餐厅和外卖商品推荐。</p>
+            <div class="city-tags">
+              <button data-city="徐州市">徐州市</button>
+              <button data-city="南京市">南京市</button>
+              <button data-city="北京市">北京市</button>
+              <button data-city="上海市">上海市</button>
+            </div>
+          </section>
+
+          <div class="toast" id="toast">已更新定位</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const stateConfig = {
+      gps: {
+        locTitle: '徐州工程学院附近',
+        locSub: '精准定位 · 附近推荐',
+        homeNoticeClass: 'notice good',
+        homeNoticeTitle: '已开启精准定位',
+        homeNoticeText: '推荐结果将优先匹配你附近可配送餐厅和优惠商品。',
+        homeNoticeBtn: '更新定位',
+        restaurantTitle: '附近推荐餐厅',
+        restaurantDesc: '基于当前位置',
+        dealTitle: '附近可买优惠商品',
+        distanceOne: '距你 0.8km',
+        distanceTwo: '距你 1.4km',
+        dealDistance: '可配送',
+        restaurantStatePill: '📍 精准定位 · 附近推荐',
+        restaurantNoticeClass: 'notice good',
+        restaurantNoticeTitle: '附近推荐餐厅',
+        restaurantNoticeText: '已基于你的当前位置筛选可配送、距离更近的餐厅。',
+        restaurantPageTitle: '附近推荐餐厅',
+        restaurantPageSub: '按距离和可配送优先',
+        dealStatePill: '📍 精准定位 · 附近可买',
+        dealNoticeClass: 'notice good',
+        dealNoticeTitle: '附近可买优惠商品',
+        dealNoticeText: '优先展示当前位置附近可配送、可购买的商品。',
+        dealPageTitle: '附近可买优惠商品',
+        dealPageSub: '外卖 / 到店'
+      },
+      manual: {
+        locTitle: '云龙万达广场附近',
+        locSub: '手动位置 · 附近推荐',
+        homeNoticeClass: 'notice good',
+        homeNoticeTitle: '已选择手动位置',
+        homeNoticeText: '将基于你选择的位置推荐附近餐厅和优惠商品。',
+        homeNoticeBtn: '切换位置',
+        restaurantTitle: '该位置附近餐厅',
+        restaurantDesc: '基于手动选点',
+        dealTitle: '该位置附近优惠商品',
+        distanceOne: '距该位置 0.6km',
+        distanceTwo: '距该位置 1.1km',
+        dealDistance: '该位置可配送',
+        restaurantStatePill: '📍 手动位置 · 附近推荐',
+        restaurantNoticeClass: 'notice good',
+        restaurantNoticeTitle: '该位置附近餐厅',
+        restaurantNoticeText: '当前基于手动选点推荐，适合未授权定位用户。',
+        restaurantPageTitle: '该位置附近餐厅',
+        restaurantPageSub: '按手动位置计算',
+        dealStatePill: '📍 手动位置 · 附近可买',
+        dealNoticeClass: 'notice good',
+        dealNoticeTitle: '该位置附近优惠商品',
+        dealNoticeText: '当前基于手动位置展示附近可买商品。',
+        dealPageTitle: '该位置附近优惠商品',
+        dealPageSub: '基于地图选点'
+      },
+      city: {
+        locTitle: '徐州市',
+        locSub: '仅城市定位 · 推荐可能不准',
+        homeNoticeClass: 'notice warning',
+        homeNoticeTitle: '当前仅定位到城市',
+        homeNoticeText: '附近餐厅和外卖商品可能不准确，建议开启精准定位。',
+        homeNoticeBtn: '开启定位',
+        restaurantTitle: '徐州热门餐厅',
+        restaurantDesc: '城市浏览兜底',
+        dealTitle: '徐州优惠商品',
+        distanceOne: '城市热门',
+        distanceTwo: '城市热门',
+        dealDistance: '配送需以承接页为准',
+        restaurantStatePill: '⚠️ 城市级定位 · 推荐可能不准',
+        restaurantNoticeClass: 'notice warning',
+        restaurantNoticeTitle: '当前为城市级定位',
+        restaurantNoticeText: '仅展示徐州热门餐厅，不建议作为附近推荐结果。',
+        restaurantPageTitle: '徐州热门餐厅',
+        restaurantPageSub: '建议开启精准定位',
+        dealStatePill: '⚠️ 城市级定位 · 外卖可能不可配送',
+        dealNoticeClass: 'notice warning',
+        dealNoticeTitle: '外卖商品可能无法配送',
+        dealNoticeText: '当前仅定位到城市，商品是否可配送需以美团/饿了么承接页为准。',
+        dealPageTitle: '徐州优惠商品',
+        dealPageSub: '城市浏览兜底'
+      },
+      none: {
+        locTitle: '开启定位',
+        locSub: '查看附近餐厅和优惠商品',
+        homeNoticeClass: 'notice warning',
+        homeNoticeTitle: '尚未获取当前位置',
+        homeNoticeText: '开启定位后，才能更准确推荐附近可配送餐厅和可购买商品。',
+        homeNoticeBtn: '去开启',
+        restaurantTitle: '开启定位查看附近餐厅',
+        restaurantDesc: '未定位',
+        dealTitle: '开启定位查看优惠商品',
+        distanceOne: '待定位',
+        distanceTwo: '待定位',
+        dealDistance: '待定位',
+        restaurantStatePill: '📍 未定位',
+        restaurantNoticeClass: 'notice warning',
+        restaurantNoticeTitle: '开启定位查看附近餐厅',
+        restaurantNoticeText: '需要当前位置才能判断距离、配送范围和附近门店。',
+        restaurantPageTitle: '开启定位查看附近餐厅',
+        restaurantPageSub: '待获取位置',
+        dealStatePill: '📍 未定位',
+        dealNoticeClass: 'notice warning',
+        dealNoticeTitle: '开启定位查看优惠商品',
+        dealNoticeText: '需要当前位置才能优先展示可配送、可购买商品。',
+        dealPageTitle: '开启定位查看优惠商品',
+        dealPageSub: '待获取位置'
+      }
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const overlay = $('overlay');
+    const drawer = $('drawer');
+    const toast = $('toast');
+    const modal = $('permissionModal');
+    const mapPanel = $('mapPanel');
+    const cityPanel = $('cityPanel');
+    let currentState = 'gps';
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1400);
+    }
+
+    function openDrawer() {
+      overlay.classList.add('show');
+      drawer.classList.add('show');
+    }
+
+    function closeAll() {
+      overlay.classList.remove('show');
+      drawer.classList.remove('show');
+      modal.classList.remove('show');
+      mapPanel.classList.remove('show');
+      cityPanel.classList.remove('show');
+    }
+
+    function setState(state, customTitle) {
+      currentState = state;
+      const config = { ...stateConfig[state] };
+      if (customTitle) config.locTitle = customTitle;
+
+      $('locTitle').textContent = config.locTitle;
+      $('locSub').textContent = config.locSub;
+
+      $('homeNotice').className = config.homeNoticeClass;
+      $('homeNotice').querySelector('b').textContent = config.homeNoticeTitle;
+      $('homeNotice').querySelector('span').textContent = config.homeNoticeText;
+      $('noticeAction').textContent = config.homeNoticeBtn;
+
+      $('restaurantTitle').textContent = config.restaurantTitle;
+      $('restaurantDesc').textContent = config.restaurantDesc;
+      $('dealTitle').textContent = config.dealTitle;
+      $('distanceOne').textContent = config.distanceOne;
+      $('distanceTwo').textContent = config.distanceTwo;
+      $('dealDistance').textContent = config.dealDistance;
+
+      $('restaurantStatePill').textContent = config.restaurantStatePill;
+      $('restaurantNotice').className = config.restaurantNoticeClass;
+      $('restaurantNotice').querySelector('b').textContent = config.restaurantNoticeTitle;
+      $('restaurantNotice').querySelector('span').textContent = config.restaurantNoticeText;
+      $('restaurantPageTitle').textContent = config.restaurantPageTitle;
+      $('restaurantPageSub').textContent = config.restaurantPageSub;
+
+      $('dealStatePill').textContent = config.dealStatePill;
+      $('dealNotice').className = config.dealNoticeClass;
+      $('dealNotice').querySelector('b').textContent = config.dealNoticeTitle;
+      $('dealNotice').querySelector('span').textContent = config.dealNoticeText;
+      $('dealPageTitle').textContent = config.dealPageTitle;
+      $('dealPageSub').textContent = config.dealPageSub;
+
+      document.querySelectorAll('.status-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.state === state);
+      });
+
+      const badges = document.querySelectorAll('.page-distance');
+      badges.forEach((badge, index) => {
+        if (state === 'city') badge.textContent = '城市热门';
+        else if (state === 'none') badge.textContent = '待定位';
+        else badge.textContent = index === 0 ? (state === 'manual' ? '距该位置 0.5km' : '距你 0.7km') : (state === 'manual' ? '距该位置 1.0km' : '距你 1.2km');
+      });
+
+      document.querySelectorAll('.deal-page-badge').forEach((badge, index) => {
+        if (state === 'city') badge.textContent = index === 0 ? '配送需以承接页为准' : '城市门店';
+        else if (state === 'none') badge.textContent = '待定位';
+        else badge.textContent = index === 0 ? '可配送' : '附近门店可用';
+      });
+    }
+
+    function switchView(view) {
+      ['home', 'restaurant', 'deal'].forEach(v => {
+        const el = $(v + 'View');
+        if (el) el.classList.toggle('hidden', v !== view);
+      });
+
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.view === view);
+      });
+
+      if (view === 'mine') {
+        showToast('我的页面非本次定位原型重点');
+        document.querySelector('.tab[data-view="home"]').click();
+      }
+    }
+
+    $('openDrawer').addEventListener('click', openDrawer);
+    $('closeDrawer').addEventListener('click', closeAll);
+    overlay.addEventListener('click', closeAll);
+    $('noticeAction').addEventListener('click', openDrawer);
+    document.querySelectorAll('.open-location').forEach(btn => btn.addEventListener('click', openDrawer));
+
+    $('autoLocation').addEventListener('click', () => {
+      drawer.classList.remove('show');
+      modal.classList.add('show');
+    });
+
+    $('allowLocation').addEventListener('click', () => {
+      setState('gps');
+      closeAll();
+      showToast('已开启精准定位');
+    });
+
+    $('rejectLocation').addEventListener('click', () => {
+      modal.classList.remove('show');
+      mapPanel.classList.add('show');
+    });
+
+    $('manualMap').addEventListener('click', () => {
+      drawer.classList.remove('show');
+      mapPanel.classList.add('show');
+    });
+
+    $('closeMap').addEventListener('click', closeAll);
+
+    document.querySelectorAll('.address-item').forEach(item => {
+      item.addEventListener('click', () => {
+        setState('manual', item.dataset.name);
+        closeAll();
+        showToast('已选择手动位置');
+      });
+    });
+
+    $('cityOnly').addEventListener('click', () => {
+      drawer.classList.remove('show');
+      cityPanel.classList.add('show');
+    });
+
+    document.querySelectorAll('.city-tags button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        stateConfig.city.locTitle = btn.dataset.city;
+        stateConfig.city.restaurantTitle = btn.dataset.city.replace('市', '') + '热门餐厅';
+        stateConfig.city.dealTitle = btn.dataset.city.replace('市', '') + '优惠商品';
+        stateConfig.city.restaurantPageTitle = btn.dataset.city.replace('市', '') + '热门餐厅';
+        stateConfig.city.dealPageTitle = btn.dataset.city.replace('市', '') + '优惠商品';
+        setState('city');
+        closeAll();
+        showToast('已切换为城市浏览');
+      });
+    });
+
+    document.querySelectorAll('.status-card').forEach(card => {
+      card.addEventListener('click', () => {
+        setState(card.dataset.state);
+        showToast('已切换演示状态');
+      });
+    });
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => switchView(tab.dataset.view));
+    });
+
+    setState('gps');
+  </script>
+</body>
+</html>
