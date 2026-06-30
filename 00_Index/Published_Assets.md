@@ -102,6 +102,13 @@
 | `05_AI_Agent_Workflows/` | `BeautyGo_Vibe_Coding_Operating_System.md`、`BeautyGo_Agent_Prompt_Templates.md` | 展示 Agent 协作框架和 Prompt 角色模板 |
 | `02_Market_and_User_Insights/Opportunity_Notes/`、`06_Data_and_Operations/Operational_Insights/`、`07_Delivery_and_Evidence/` | `BeautyGo_Validation_*` | 展示 BeautyGo 冷启动验证、指标定义和落地页探索 |
 
+## 第五批补充材料
+
+| 目录 | 材料 | 用途 |
+| --- | --- | --- |
+| `01_Product_Strategy/PRD/GanFanBa_Bitego/` | `GanFanBa_Meituan_Order_Rebate_PRD_v1.2.pdf` | 展示美团订单返利功能的需求定义、返利流程、订单追踪和人工补单规则 |
+| `03_User_Experience/High_Fidelity_Prototypes/GanFanBa_Bitego/` | `GanFanBa_Meituan_Order_Rebate_Prototype.png` | 展示美团订单返利页面原型、状态流转、规则弹窗、返利进度弹窗和人工补充订单入口 |
+
 ## 未上传内容
 
 - 原始完整压缩包。
