@@ -34,6 +34,7 @@
 | 干饭吧本地生活扩展 | 定位体系优化、本地生活 PRD、User Story、玩法跳转、酒店品牌筛选、商品详情原型。 | `01_Product_Strategy/PRD/GanFanBa_Bitego/`、`07_Delivery_and_Evidence/Demo_Pages/GanFanBa_Local_Life/` |
 | 活动转化与外部平台承接 | 美团转化落地页、订单返利功能、海报设计需求、上线 checklist、接口测试脚本。 | `01_Product_Strategy/PRD/GanFanBa_Bitego/`、`03_User_Experience/High_Fidelity_Prototypes/GanFanBa_Bitego/`、`07_Delivery_and_Evidence/Demo_Pages/GanFanBa_Meituan_Landing/` |
 | BeautyGo 补充案例 | 上门美妆平台 PRD、MVP 优化清单、Agent 协作框架、技术骨架。 | `01_Product_Strategy/PRD/BeautyGo/`、`04_System_Architecture/Product_Architecture/BeautyGo_Codebase_Overview.md` |
+| 联盟推广采集自动化 | 美团联盟活动推广、淘宝闪购会场推广等 Tampermonkey 采集助手脚本，用于辅助采集推广物料并导出结构化数据。 | `08_Scripts_and_Tools/Automation/Alliance_Promotion_Collectors/` |
 
 
 
