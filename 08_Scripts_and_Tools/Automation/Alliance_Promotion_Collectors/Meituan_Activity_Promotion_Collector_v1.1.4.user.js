@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         美团活动推广采集助手
 // @namespace    https://ganfanba.local/userscripts
-// @version      1.1.1
-// @description  在美团联盟「物料推广 > 活动推广」页面批量采集活动文案素材并导出 CSV / JSON。V1.1.1 优化采集助手悬浮窗口 UI，不改动采集逻辑。
+// @version      1.1.4
+// @description  在美团联盟「物料推广 > 活动推广」页面批量采集活动文案素材并导出 CSV / JSON。V1.1.4 修复文案素材选中态误判：严格校验目标 radio/内容变化，避免未选中却提示已选中。
 // @author       Codex
 // @match        *://*.meituan.com/*
 // @match        *://meituan.com/*
@@ -474,7 +474,7 @@
       root.id = 'mtamc-panel';
       root.innerHTML = `
         <div class="mtamc-head">
-          <span class="mtamc-head-title">美团活动推广采集助手 <span class="mtamc-version">V1.1.1</span></span>
+          <span class="mtamc-head-title">美团活动推广采集助手 <span class="mtamc-version">V1.1.4</span></span>
           <span class="mtamc-head-tools">
             <span class="mtamc-count-pill" id="mtamc-record-count">0 条</span>
             <button class="mtamc-mini-btn" id="mtamc-minimize" type="button" title="最小化/展开">−</button>
@@ -5491,6 +5491,926 @@
 
   applyMeituanCollectorV110Patch();
 
+
+  /**
+   * V1.1.2 修复：
+   * 1) 进入文案素材采集前，准确识别当前活动真实可点击的素材类型。
+   * 2) 对置灰/禁用素材直接记录 skipped，不再点击、不再等待、不再重试。
+   * 3) 搜索密令继续按业务配置跳过，避免进入提交审核表单。
+   */
+  function applyMeituanCollectorV112Patch() {
+    CONFIG.version = 'V1.1.4';
+    CONFIG.skipMaterialTypes = ['搜索密令'];
+    CONFIG.materialTypes = ['短链接', '长链接', '呼起协议', '小程序路径', 'H5链接二维码', '小程序二维码', '团口令'];
+
+    const panelSelector = '#mtamc-panel';
+    const normalize = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+    const compact = (value) => normalize(value).replace(/[\s>*：:，,。；;（）()\-_/【】\[\]]/g, '').trim();
+
+    const parseRGB = (color) => {
+      const match = String(color || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/i);
+      if (!match) return null;
+      return [Number(match[1]), Number(match[2]), Number(match[3]), match[4] === undefined ? 1 : Number(match[4])];
+    };
+
+    const isMutedColor = (color) => {
+      const rgb = parseRGB(color);
+      if (!rgb) return false;
+      const [r, g, b, a] = rgb;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      return a < 0.72 || (max - min <= 28 && r >= 135 && g >= 135 && b >= 135);
+    };
+
+    const isDarkColor = (color) => {
+      const rgb = parseRGB(color);
+      if (!rgb) return false;
+      const [r, g, b, a] = rgb;
+      return a > 0.45 && r < 95 && g < 95 && b < 95;
+    };
+
+    const isVisible = (element) => {
+      if (!element || element.nodeType !== 1) return false;
+      if (element.closest && element.closest(panelSelector)) return false;
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0 && rect.width > 0 && rect.height > 0;
+    };
+
+    const allVisible = (selector, root = document) => Array.from(root.querySelectorAll(selector)).filter(isVisible);
+    const textOf = (element) => normalize(element ? element.innerText || element.textContent || '' : '');
+
+    const getPromotionDrawer = () => {
+      const modal = PromotionModal.findModal && PromotionModal.findModal();
+      if (modal && isVisible(modal) && textOf(modal).includes('文案素材')) return modal;
+
+      const candidates = Array.from(document.querySelectorAll('aside,section,div,[role="dialog"],[class*="drawer"],[class*="Drawer"],[class*="modal"],[class*="Modal"]'))
+        .filter(isVisible)
+        .filter((element) => {
+          const text = textOf(element);
+          const rect = element.getBoundingClientRect();
+          return (
+            text.includes('立即推广') &&
+            text.includes('选择推广媒体') &&
+            text.includes('选择推广位') &&
+            text.includes('文案素材') &&
+            rect.width >= 420 &&
+            rect.height >= 260 &&
+            rect.left > window.innerWidth * 0.28 &&
+            rect.right > window.innerWidth * 0.70
+          );
+        })
+        .sort((a, b) => {
+          const ar = a.getBoundingClientRect();
+          const br = b.getBoundingClientRect();
+          return ar.width * ar.height - br.width * br.height;
+        });
+      return candidates[0] || PromotionModal.currentModal || null;
+    };
+
+    const getMaterialTypeList = () => {
+      const configured = (CONFIG.materialTypes || []).concat(CONFIG.optionalMaterialTypes || []);
+      return Array.from(new Set(configured.concat(['短链接', '长链接', '呼起协议', '小程序路径', 'H5链接二维码', '小程序二维码', '团口令', '搜索密令'])));
+    };
+
+    const getMaterialTextNodes = (typeName, modal) => {
+      const target = compact(typeName);
+      return allVisible('label,span,div,p', modal)
+        .filter((element) => {
+          const text = textOf(element);
+          if (!text || text.length > 24) return false;
+          return compact(text) === target;
+        })
+        .sort((a, b) => {
+          const ar = a.getBoundingClientRect();
+          const br = b.getBoundingClientRect();
+          return (ar.width * ar.height) - (br.width * br.height);
+        });
+    };
+
+    const findMaterialLabel = (typeName, modal = getPromotionDrawer()) => {
+      if (!modal) return null;
+      const nodes = getMaterialTextNodes(typeName, modal);
+      if (!nodes.length) return null;
+      const element = nodes[0];
+      return { typeName, element, rect: element.getBoundingClientRect() };
+    };
+
+    const looksLikeRadio = (element, rect) => {
+      if (!element || !rect) return false;
+      const cls = String(element.className || '');
+      const role = element.getAttribute && (element.getAttribute('role') || '');
+      const tag = element.tagName;
+      const elementText = textOf(element);
+      return (
+        tag === 'INPUT' ||
+        role === 'radio' ||
+        /radio|circle|dot/i.test(cls) ||
+        (rect.width >= 12 && rect.width <= 36 && rect.height >= 12 && rect.height <= 36 && !elementText)
+      );
+    };
+
+    const findNearbyRadio = (labelItem, modal) => {
+      if (!labelItem || !modal) return null;
+      const labelRect = labelItem.rect || labelItem.element.getBoundingClientRect();
+      const labelY = labelRect.top + labelRect.height / 2;
+      const directLabel = labelItem.element.closest('label');
+      if (directLabel) {
+        const direct = allVisible('input[type="radio"],[role="radio"],span,div,i', directLabel)
+          .map((element) => ({ element, rect: element.getBoundingClientRect() }))
+          .filter(({ element, rect }) => looksLikeRadio(element, rect));
+        if (direct.length) {
+          direct.sort((a, b) => Math.abs((a.rect.top + a.rect.height / 2) - labelY) - Math.abs((b.rect.top + b.rect.height / 2) - labelY));
+          return direct[0];
+        }
+      }
+
+      const candidates = allVisible('input[type="radio"],[role="radio"],span,div,i', modal)
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const horizontalGap = labelRect.left - centerX;
+          const verticalGap = Math.abs(centerY - labelY);
+          return { element, rect, centerX, centerY, horizontalGap, verticalGap };
+        })
+        .filter(({ element, rect, horizontalGap, verticalGap }) => (
+          looksLikeRadio(element, rect) && horizontalGap >= 4 && horizontalGap <= 82 && verticalGap <= 18
+        ))
+        .sort((a, b) => {
+          const scoreA = Math.abs(a.horizontalGap - 28) + a.verticalGap * 3;
+          const scoreB = Math.abs(b.horizontalGap - 28) + b.verticalGap * 3;
+          return scoreA - scoreB;
+        });
+      return candidates[0] || null;
+    };
+
+    const radioIsSelected = (radioItem) => {
+      if (!radioItem || !radioItem.element) return false;
+      const radio = radioItem.element;
+      if (radio.checked === true) return true;
+      if (radio.getAttribute && radio.getAttribute('aria-checked') === 'true') return true;
+
+      const nodes = [radio, radio.parentElement].filter(Boolean);
+      for (const node of nodes) {
+        const cls = String(node.className || '');
+        if (/\b(is-)?(checked|active|selected)\b/i.test(cls) && !/uncheck|unchecked/i.test(cls)) return true;
+      }
+
+      const visualNodes = [];
+      nodes.forEach((node) => {
+        visualNodes.push(node);
+        visualNodes.push(...Array.from(node.querySelectorAll ? node.querySelectorAll('*') : []));
+      });
+
+      for (const node of visualNodes.slice(0, 30)) {
+        const rect = node.getBoundingClientRect();
+        if (rect.width > 42 || rect.height > 42) continue;
+        const style = window.getComputedStyle(node);
+        if (isDarkColor(style.backgroundColor) || isDarkColor(style.borderColor)) return true;
+        const before = window.getComputedStyle(node, '::before');
+        const after = window.getComputedStyle(node, '::after');
+        if (isDarkColor(before.backgroundColor) || isDarkColor(after.backgroundColor)) return true;
+        if (isDarkColor(before.borderColor) || isDarkColor(after.borderColor)) return true;
+      }
+      return false;
+    };
+
+    const getMaterialContainerNodes = (labelItem, modal) => {
+      if (!labelItem) return [];
+      const label = labelItem.element;
+      const radio = findNearbyRadio(labelItem, modal);
+      const nodes = [
+        label,
+        label.closest('label'),
+        label.parentElement,
+        label.parentElement && label.parentElement.parentElement,
+        radio && radio.element,
+        radio && radio.element.parentElement,
+        radio && radio.element.parentElement && radio.element.parentElement.parentElement
+      ].filter(Boolean);
+
+      const labelRect = labelItem.rect || label.getBoundingClientRect();
+      const labelY = labelRect.top + labelRect.height / 2;
+      let current = label.parentElement;
+      while (current && current !== modal && nodes.length < 12) {
+        const rect = current.getBoundingClientRect();
+        const centerY = rect.top + rect.height / 2;
+        if (rect.width <= 260 && rect.height <= 70 && Math.abs(centerY - labelY) <= 24) nodes.push(current);
+        current = current.parentElement;
+      }
+      return Array.from(new Set(nodes));
+    };
+
+    const elementDisabledByState = (element) => {
+      if (!element || element.nodeType !== 1) return false;
+      if (element.disabled === true) return true;
+      if (element.getAttribute('disabled') !== null) return true;
+      if (element.getAttribute('aria-disabled') === 'true') return true;
+      const cls = String(element.className || '');
+      if (/(^|\s|_|-)(disabled|is-disabled|mtd-radio-disabled|ant-radio-disabled|radio-disabled)(\s|_|-|$)/i.test(cls)) return true;
+      const style = window.getComputedStyle(element);
+      if (style.pointerEvents === 'none') return true;
+      if (Number(style.opacity) > 0 && Number(style.opacity) < 0.65) return true;
+      if (style.cursor === 'not-allowed') return true;
+      return false;
+    };
+
+    const materialDisabledReason = (typeName, modal = getPromotionDrawer()) => {
+      if ((CONFIG.skipMaterialTypes || []).includes(typeName) || typeName === '搜索密令') return '业务配置不采集';
+      if (!modal) return '推广面板未打开';
+
+      const labelItem = findMaterialLabel(typeName, modal);
+      if (!labelItem) return '当前活动未展示该素材类型';
+
+      const radio = findNearbyRadio(labelItem, modal);
+      if (radioIsSelected(radio)) return '';
+
+      const nodes = getMaterialContainerNodes(labelItem, modal);
+      if (nodes.some(elementDisabledByState)) return '素材类型置灰不可用';
+
+      const exactTextNodes = getMaterialTextNodes(typeName, modal);
+      const textNodes = exactTextNodes.length ? exactTextNodes : [labelItem.element];
+      const mutedTextNodes = textNodes.filter((node) => {
+        const style = window.getComputedStyle(node);
+        return isMutedColor(style.color) || style.pointerEvents === 'none' || style.cursor === 'not-allowed' || (Number(style.opacity) > 0 && Number(style.opacity) < 0.65);
+      });
+
+      // 文案文字本身呈灰色，基本可以判断为不可点击；不要用 radio 圆圈边框颜色判断，避免误判未选中但可点击的正常圆圈。
+      if (mutedTextNodes.length > 0) return '素材类型置灰不可用';
+
+      const inputRadio = nodes.find((node) => node.matches && node.matches('input[type="radio"]'));
+      if (inputRadio && inputRadio.disabled) return '素材类型置灰不可用';
+
+      return '';
+    };
+
+    const getAvailableMaterialTypes = (modal = getPromotionDrawer()) => {
+      const materialTypes = getMaterialTypeList().filter((type) => !(CONFIG.skipMaterialTypes || []).includes(type) && type !== '搜索密令');
+      return materialTypes.filter((type) => !materialDisabledReason(type, modal));
+    };
+
+    PromotionModal.getAvailableMaterialTypes = function getAvailableMaterialTypesV112() {
+      return getAvailableMaterialTypes(getPromotionDrawer());
+    };
+
+    PromotionModal.isMaterialTypeEnabled = function isMaterialTypeEnabledV112(typeName) {
+      return !materialDisabledReason(typeName, getPromotionDrawer());
+    };
+
+    const previousSelectMaterialType = PromotionModal.selectMaterialType.bind(PromotionModal);
+    PromotionModal.selectMaterialType = async function selectMaterialTypeV112(typeName) {
+      const modal = getPromotionDrawer() || PromotionModal.currentModal || (await PromotionModal.waitForPromotionModal());
+      const reason = materialDisabledReason(typeName, modal);
+      if (reason) {
+        Logger.info(`素材类型不可用，跳过：${typeName}（${reason}）`);
+        return false;
+      }
+      return previousSelectMaterialType(typeName);
+    };
+
+    const previousCollectMaterialType = Collector.collectMaterialType.bind(Collector);
+    Collector.collectMaterialType = async function collectMaterialTypeV112(base, typeName) {
+      const now = new Date().toISOString();
+      const modal = getPromotionDrawer() || PromotionModal.currentModal;
+      const reason = materialDisabledReason(typeName, modal);
+      if (reason) {
+        Storage.upsertRecord(this.buildRecord(base, typeName, 'skipped', '', '', '', '', reason, now));
+        Logger.info(`${typeName} 跳过：${reason}`);
+        return 'skipped';
+      }
+      return previousCollectMaterialType(base, typeName);
+    };
+
+    const previousProcessRow = Collector.processRow.bind(Collector);
+    Collector.processRow = async function processRowV112(row, base) {
+      return previousProcessRow(row, base);
+    };
+  }
+
+  applyMeituanCollectorV112Patch();
+
+  /**
+   * V1.1.3 修复：
+   * 1) 不再把“颜色灰/截图观感”作为唯一依据。
+   * 2) 素材点击后必须严格检测目标 radio 是否真实选中；未选中即按置灰不可用跳过。
+   * 3) 对不可用素材只做一次轻量探测，不再反复点 radio/label/text，避免误关抽屉。
+   */
+  function applyMeituanCollectorV113Patch() {
+    CONFIG.version = 'V1.1.4';
+    CONFIG.materialClickRetry = 1;
+    CONFIG.skipMaterialTypes = Array.from(new Set([...(CONFIG.skipMaterialTypes || []), '搜索密令']));
+    CONFIG.materialTypes = ['短链接', '长链接', '呼起协议', '小程序路径', 'H5链接二维码', '小程序二维码', '团口令'];
+
+    const PANEL_SELECTOR = '#mtamc-panel';
+    const MATERIAL_TYPES = ['短链接', '长链接', '呼起协议', '小程序路径', 'H5链接二维码', '小程序二维码', '团口令', '搜索密令'];
+    const normalize = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+
+    const visible = (element) => {
+      if (!element || element.nodeType !== 1) return false;
+      if (element.closest && element.closest(PANEL_SELECTOR)) return false;
+      const style = window.getComputedStyle(element);
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+
+    const all = (selector, root = document) => Array.from(root.querySelectorAll(selector)).filter(visible);
+    const textOf = (element) => normalize(element ? element.innerText || element.textContent || '' : '');
+
+    const getPromotionDrawer = () => {
+      const current = PromotionModal.currentModal;
+      if (current && visible(current)) {
+        const currentText = textOf(current);
+        if (currentText.includes('文案素材') || currentText.includes('选择推广媒体')) return current;
+      }
+
+      const candidates = all('aside,section,div,[role="dialog"],[class*="drawer"],[class*="modal"]', document)
+        .filter((element) => {
+          const t = textOf(element);
+          const rect = element.getBoundingClientRect();
+          return (
+            rect.width >= 360 &&
+            rect.height >= 220 &&
+            rect.right > window.innerWidth * 0.45 &&
+            t.includes('选择推广媒体') &&
+            (t.includes('文案素材') || t.includes('选择推广位') || t.includes('推广物料'))
+          );
+        })
+        .sort((a, b) => {
+          const ra = a.getBoundingClientRect();
+          const rb = b.getBoundingClientRect();
+          return ra.width * ra.height - rb.width * rb.height;
+        });
+      return candidates[0] || null;
+    };
+
+    const getMaterialArea = (modal) => {
+      if (!modal) return null;
+      const label = all('label,span,div,p,td', modal).find((node) => textOf(node) === '文案素材');
+      if (!label) return modal;
+      const labelRect = label.getBoundingClientRect();
+      let current = label.parentElement;
+      const candidates = [];
+      while (current && current !== modal.parentElement) {
+        if (visible(current)) {
+          const rect = current.getBoundingClientRect();
+          const t = textOf(current);
+          if (
+            t.includes('文案素材') &&
+            MATERIAL_TYPES.some((type) => t.includes(type)) &&
+            rect.height >= 48 &&
+            rect.height <= 220 &&
+            rect.width >= 420 &&
+            Math.abs((rect.top + rect.height / 2) - (labelRect.top + labelRect.height / 2)) <= 90
+          ) {
+            candidates.push({ element: current, area: rect.width * rect.height });
+          }
+        }
+        if (current === modal) break;
+        current = current.parentElement;
+      }
+      candidates.sort((a, b) => a.area - b.area);
+      return candidates[0] ? candidates[0].element : modal;
+    };
+
+    const findMaterialTextNode = (typeName, modal = getPromotionDrawer()) => {
+      if (!modal) return null;
+      const area = getMaterialArea(modal) || modal;
+      const candidates = all('label,span,div,p', area)
+        .filter((node) => textOf(node) === typeName)
+        .map((node) => {
+          const rect = node.getBoundingClientRect();
+          return { node, rect, area: rect.width * rect.height };
+        })
+        .filter(({ rect }) => rect.width >= 18 && rect.width <= 180 && rect.height >= 14 && rect.height <= 48)
+        .sort((a, b) => a.area - b.area);
+      return candidates[0] || null;
+    };
+
+    const looksLikeRadio = (element, rect) => {
+      if (!element || !rect) return false;
+      if (element.matches && element.matches('input[type="radio"],[role="radio"]')) return true;
+      const className = String(element.className || '');
+      const style = window.getComputedStyle(element);
+      const radius = parseFloat(style.borderRadius || '0');
+      const isRound = radius >= Math.min(rect.width, rect.height) * 0.35 || /radio|circle|dot/i.test(className);
+      return rect.width >= 12 && rect.width <= 34 && rect.height >= 12 && rect.height <= 34 && isRound;
+    };
+
+    const findNearbyRadio = (labelItem, modal = getPromotionDrawer()) => {
+      if (!labelItem || !modal) return null;
+      const labelRect = labelItem.rect || labelItem.node.getBoundingClientRect();
+      const labelY = labelRect.top + labelRect.height / 2;
+      const area = getMaterialArea(modal) || modal;
+      const candidates = all('input[type="radio"],[role="radio"],span,div,i', area)
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const horizontalGap = labelRect.left - centerX;
+          const verticalGap = Math.abs(centerY - labelY);
+          return { element, rect, centerX, centerY, horizontalGap, verticalGap };
+        })
+        .filter(({ element, rect, horizontalGap, verticalGap }) => looksLikeRadio(element, rect) && horizontalGap >= -6 && horizontalGap <= 82 && verticalGap <= 20)
+        .sort((a, b) => {
+          const scoreA = Math.abs(a.horizontalGap - 26) + a.verticalGap * 3;
+          const scoreB = Math.abs(b.horizontalGap - 26) + b.verticalGap * 3;
+          return scoreA - scoreB;
+        });
+      return candidates[0] || null;
+    };
+
+    const colorIsDark = (color) => {
+      const match = String(color || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/i);
+      if (!match) return false;
+      const r = Number(match[1]);
+      const g = Number(match[2]);
+      const b = Number(match[3]);
+      const a = match[4] === undefined ? 1 : Number(match[4]);
+      if (a < 0.55) return false;
+      return r < 80 && g < 80 && b < 80;
+    };
+
+    const radioIsSelected = (radioItem) => {
+      if (!radioItem || !radioItem.element) return false;
+      const radio = radioItem.element;
+      if (radio.checked === true) return true;
+      if (radio.getAttribute && radio.getAttribute('aria-checked') === 'true') return true;
+      const nodes = [radio, radio.parentElement, radio.parentElement && radio.parentElement.parentElement].filter(Boolean);
+      for (const node of nodes) {
+        const cls = String(node.className || '');
+        if (/(^|\s|-|_)(checked|selected|active|is-checked)(\s|-|_|$)/i.test(cls) && !/uncheck|unchecked/i.test(cls)) return true;
+      }
+      const visualNodes = [];
+      nodes.forEach((node) => {
+        visualNodes.push(node);
+        visualNodes.push(...Array.from(node.querySelectorAll ? node.querySelectorAll('*') : []));
+      });
+      for (const node of visualNodes.slice(0, 28)) {
+        const rect = node.getBoundingClientRect();
+        if (rect.width > 42 || rect.height > 42) continue;
+        const style = window.getComputedStyle(node);
+        if (colorIsDark(style.backgroundColor) || colorIsDark(style.borderColor)) return true;
+        const before = window.getComputedStyle(node, '::before');
+        const after = window.getComputedStyle(node, '::after');
+        if (colorIsDark(before.backgroundColor) || colorIsDark(after.backgroundColor)) return true;
+        if (colorIsDark(before.borderColor) || colorIsDark(after.borderColor)) return true;
+      }
+      return false;
+    };
+
+    const getActiveMaterialType = (modal = getPromotionDrawer()) => {
+      if (!modal) return '';
+      for (const typeName of MATERIAL_TYPES) {
+        const labelItem = findMaterialTextNode(typeName, modal);
+        if (!labelItem) continue;
+        const radio = findNearbyRadio(labelItem, modal);
+        if (radioIsSelected(radio)) return typeName;
+      }
+      return '';
+    };
+
+    const hasObviousDisabledState = (typeName, modal = getPromotionDrawer()) => {
+      if (typeName === '搜索密令' || (CONFIG.skipMaterialTypes || []).includes(typeName)) return '业务配置不采集';
+      const labelItem = findMaterialTextNode(typeName, modal);
+      if (!labelItem) return '当前活动未展示该素材类型';
+      const radio = findNearbyRadio(labelItem, modal);
+      const nodes = [
+        labelItem.node,
+        labelItem.node.closest && labelItem.node.closest('label'),
+        labelItem.node.parentElement,
+        radio && radio.element,
+        radio && radio.element.parentElement,
+        radio && radio.element.parentElement && radio.element.parentElement.parentElement
+      ].filter(Boolean);
+      for (const node of nodes) {
+        if (node.disabled === true) return '素材类型置灰不可用';
+        if (node.getAttribute && node.getAttribute('disabled') !== null) return '素材类型置灰不可用';
+        if (node.getAttribute && node.getAttribute('aria-disabled') === 'true') return '素材类型置灰不可用';
+        const cls = String(node.className || '');
+        if (/(^|\s|_|-)(disabled|is-disabled|mtd-radio-disabled|ant-radio-disabled|radio-disabled)(\s|_|-|$)/i.test(cls)) return '素材类型置灰不可用';
+        const style = window.getComputedStyle(node);
+        if (style.pointerEvents === 'none' || style.cursor === 'not-allowed') return '素材类型置灰不可用';
+      }
+      return '';
+    };
+
+    const clickAt = async (x, y, reason = '') => {
+      const target = document.elementFromPoint(x, y);
+      if (!target) throw new Error(`点击素材失败：坐标无元素 ${reason}`);
+      const eventOptions = { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y };
+      Logger.info(`点击素材：${reason} x=${Math.round(x)}, y=${Math.round(y)}, 命中=${target.tagName} ${textOf(target).slice(0, 18)}`);
+      if (window.PointerEvent) {
+        target.dispatchEvent(new PointerEvent('pointerdown', eventOptions));
+        target.dispatchEvent(new PointerEvent('pointerup', eventOptions));
+      }
+      target.dispatchEvent(new MouseEvent('mouseover', eventOptions));
+      target.dispatchEvent(new MouseEvent('mousedown', eventOptions));
+      target.dispatchEvent(new MouseEvent('mouseup', eventOptions));
+      target.dispatchEvent(new MouseEvent('click', eventOptions));
+      if (typeof target.click === 'function') {
+        try { target.click(); } catch (error) { /* ignore */ }
+      }
+      await DOM.sleep(CONFIG.materialFastSwitchDelay || 260);
+    };
+
+    const waitActiveType = async (typeName, timeout = 900) => {
+      const start = Date.now();
+      let active = '';
+      while (Date.now() - start < timeout) {
+        const drawer = getPromotionDrawer();
+        if (!drawer) return { modalClosed: true, activeType: active };
+        active = getActiveMaterialType(drawer);
+        if (active === typeName) return { ok: true, activeType: active, modalClosed: false };
+        await DOM.sleep(120);
+      }
+      return { ok: false, activeType: active, modalClosed: false };
+    };
+
+    PromotionModal.getActiveMaterialType = getActiveMaterialType;
+    PromotionModal.isMaterialTypeEnabled = function isMaterialTypeEnabledV113(typeName) {
+      if (hasObviousDisabledState(typeName, getPromotionDrawer())) return false;
+      return Boolean(findMaterialTextNode(typeName, getPromotionDrawer()));
+    };
+
+    PromotionModal.selectMaterialType = async function selectMaterialTypeV113(typeName) {
+      if (typeName === '搜索密令' || (CONFIG.skipMaterialTypes || []).includes(typeName)) {
+        Logger.info(`素材类型不可用，跳过：${typeName}（业务配置不采集）`);
+        return false;
+      }
+
+      let modal = getPromotionDrawer() || PromotionModal.currentModal || (await PromotionModal.waitForPromotionModal());
+      if (!modal) throw new Error('推广面板未打开，无法选择素材');
+
+      const obviousReason = hasObviousDisabledState(typeName, modal);
+      if (obviousReason) {
+        Logger.info(`素材类型不可用，跳过：${typeName}（${obviousReason}）`);
+        return false;
+      }
+
+      const beforeActive = getActiveMaterialType(modal);
+      if (beforeActive === typeName) {
+        Logger.info(`已确认切换素材类型：${typeName}`);
+        return true;
+      }
+
+      const labelItem = findMaterialTextNode(typeName, modal);
+      if (!labelItem) {
+        Logger.info(`素材类型不可用，跳过：${typeName}（当前活动未展示该素材类型）`);
+        return false;
+      }
+      const radio = findNearbyRadio(labelItem, modal);
+      const targetRect = radio ? radio.rect : labelItem.rect;
+      await clickAt(targetRect.left + targetRect.width / 2, targetRect.top + targetRect.height / 2, `${typeName}/probe`);
+      const verified = await waitActiveType(typeName, CONFIG.materialProbeVerifyTimeout || 1200);
+      if (verified.modalClosed) throw new Error(`推广面板在点击「${typeName}」后意外关闭`);
+      if (verified.ok) {
+        Logger.info(`已确认切换素材类型：${typeName}`);
+        return true;
+      }
+
+      // 这里不再继续点 label/text。目标没有真实选中，就按“置灰不可用/当前活动不支持”处理，避免反复误点导致抽屉关闭。
+      Logger.info(`素材类型不可用，跳过：${typeName}（点击后未选中，当前选中：${verified.activeType || beforeActive || '无'}）`);
+      return false;
+    };
+  }
+
+  applyMeituanCollectorV113Patch();
+
+  /**
+   * V1.1.4 修复：
+   * 1. 不再用“文字节点附近任意深色边框/父级 active 类”判断素材已选中；
+   * 2. 只认目标素材自己的 radio/input/label 选中态，或点击后素材内容真实刷新；
+   * 3. 点击不可选素材后如果没有真实选中，立即跳过，不再输出“已确认切换”。
+   */
+  function applyMeituanCollectorV114Patch() {
+    CONFIG.version = 'V1.1.4';
+    CONFIG.materialStrictSelectVerify = true;
+
+    const MATERIAL_TYPES_V114 = ['短链接', '长链接', '呼起协议', '小程序路径', 'H5链接二维码', '小程序二维码', '团口令', '搜索密令'];
+
+    const allV114 = (selector, root = document) => Array.from((root || document).querySelectorAll(selector));
+    const textV114 = (element) => DOM.normalizeText(element ? element.innerText || element.textContent || '' : '');
+    const compactV114 = (value) => compactOptionText(String(value || ''));
+
+    const getDrawerV114 = () => {
+      const modal = PromotionModal.currentModal || PromotionModal.findModal && PromotionModal.findModal();
+      if (modal && DOM.isVisible(modal) && !modal.closest('#mtamc-panel')) return modal;
+      return allV114('aside,section,div,[role="dialog"], [class*="drawer"], [class*="modal"]')
+        .filter((element) => DOM.isVisible(element) && !element.closest('#mtamc-panel'))
+        .filter((element) => {
+          const content = textV114(element);
+          const rect = element.getBoundingClientRect();
+          return content.includes('选择推广媒体') && content.includes('文案素材') && rect.width > 380 && rect.height > 180 && rect.right > window.innerWidth * 0.45;
+        })
+        .sort((a, b) => {
+          const ra = a.getBoundingClientRect();
+          const rb = b.getBoundingClientRect();
+          return ra.width * ra.height - rb.width * rb.height;
+        })[0] || null;
+    };
+
+    const getMaterialAreaV114 = (modal = getDrawerV114()) => {
+      if (!modal) return null;
+      const label = DOM.findSmallestByText('文案素材', modal, true) || DOM.findSmallestByText('文案素材', modal, false);
+      if (!label) return modal;
+      let current = label.parentElement;
+      const candidates = [];
+      while (current && current !== modal.parentElement) {
+        if (DOM.isVisible(current)) {
+          const content = textV114(current);
+          const rect = current.getBoundingClientRect();
+          const count = MATERIAL_TYPES_V114.filter((type) => content.includes(type)).length;
+          if (content.includes('文案素材') && count >= 2 && rect.width >= 360 && rect.height >= 45 && rect.height <= 260) {
+            candidates.push({ element: current, area: rect.width * rect.height, count });
+          }
+        }
+        if (current === modal) break;
+        current = current.parentElement;
+      }
+      candidates.sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.area - b.area;
+      });
+      return candidates[0] ? candidates[0].element : modal;
+    };
+
+    const findTextNodeV114 = (typeName, area) => {
+      const target = compactV114(typeName);
+      const nodes = allV114('label,span,div,p,i,b,strong', area)
+        .filter((node) => DOM.isVisible(node) && !node.closest('#mtamc-panel'))
+        .map((node) => {
+          const txt = textV114(node);
+          const rect = node.getBoundingClientRect();
+          return { node, txt, compact: compactV114(txt), rect, area: rect.width * rect.height };
+        })
+        .filter((item) => item.compact === target || item.txt === typeName)
+        .sort((a, b) => a.area - b.area);
+      return nodes[0] || null;
+    };
+
+    const nodeLooksRadioV114 = (node, rect = node && node.getBoundingClientRect()) => {
+      if (!node || !rect) return false;
+      const tag = node.tagName ? node.tagName.toLowerCase() : '';
+      const role = node.getAttribute && node.getAttribute('role');
+      const cls = String(node.className || '');
+      if (tag === 'input' && node.type === 'radio') return true;
+      if (role === 'radio') return true;
+      if (/radio/i.test(cls) && rect.width <= 42 && rect.height <= 42) return true;
+      const style = window.getComputedStyle(node);
+      const radius = parseFloat(style.borderRadius || '0');
+      return rect.width >= 10 && rect.width <= 34 && rect.height >= 10 && rect.height <= 34 && radius >= Math.min(rect.width, rect.height) * 0.35;
+    };
+
+    const findMaterialItemV114 = (typeName, modal = getDrawerV114()) => {
+      const area = getMaterialAreaV114(modal);
+      if (!area) return null;
+      const labelNode = findTextNodeV114(typeName, area);
+      if (!labelNode) return null;
+      const labelRect = labelNode.rect;
+      const labelY = labelRect.top + labelRect.height / 2;
+
+      let root = labelNode.node.closest && labelNode.node.closest('label,[role="radio"]');
+      if (!root || !area.contains(root)) {
+        let current = labelNode.node.parentElement;
+        const rootCandidates = [];
+        while (current && current !== area.parentElement) {
+          if (DOM.isVisible(current)) {
+            const content = textV114(current);
+            const rect = current.getBoundingClientRect();
+            const typeCount = MATERIAL_TYPES_V114.filter((type) => content.includes(type)).length;
+            if (content.includes(typeName) && typeCount <= 1 && rect.height <= 60 && rect.width <= 260) {
+              rootCandidates.push({ element: current, area: rect.width * rect.height });
+            }
+          }
+          if (current === area) break;
+          current = current.parentElement;
+        }
+        rootCandidates.sort((a, b) => a.area - b.area);
+        root = rootCandidates[0] ? rootCandidates[0].element : labelNode.node.parentElement;
+      }
+
+      const radioFromRoot = root ? allV114('input[type="radio"],[role="radio"],span,div,i', root)
+        .filter((node) => DOM.isVisible(node))
+        .map((node) => ({ element: node, rect: node.getBoundingClientRect() }))
+        .filter(({ element, rect }) => nodeLooksRadioV114(element, rect))
+        .sort((a, b) => {
+          const ax = a.rect.left + a.rect.width / 2;
+          const bx = b.rect.left + b.rect.width / 2;
+          return Math.abs((labelRect.left - ax) - 24) - Math.abs((labelRect.left - bx) - 24);
+        })[0] : null;
+
+      const radioFromArea = allV114('input[type="radio"],[role="radio"],span,div,i', area)
+        .filter((node) => DOM.isVisible(node) && !node.closest('#mtamc-panel'))
+        .map((node) => {
+          const rect = node.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          return { element: node, rect, centerX, centerY, horizontalGap: labelRect.left - centerX, verticalGap: Math.abs(centerY - labelY) };
+        })
+        .filter((item) => nodeLooksRadioV114(item.element, item.rect) && item.horizontalGap >= -4 && item.horizontalGap <= 92 && item.verticalGap <= 18)
+        .sort((a, b) => {
+          const sa = Math.abs(a.horizontalGap - 26) + a.verticalGap * 4;
+          const sb = Math.abs(b.horizontalGap - 26) + b.verticalGap * 4;
+          return sa - sb;
+        })[0];
+
+      const radio = radioFromRoot || radioFromArea || null;
+      return { typeName, area, root, labelNode: labelNode.node, labelRect, radio };
+    };
+
+    const hasDisabledV114 = (item) => {
+      if (!item) return '当前活动未展示该素材类型';
+      if (item.typeName === '搜索密令' || (CONFIG.skipMaterialTypes || []).includes(item.typeName)) return '业务配置不采集';
+      const nodes = [item.root, item.labelNode, item.radio && item.radio.element].filter(Boolean);
+      for (const node of nodes) {
+        if (node.disabled === true) return '素材类型不可用';
+        if (node.getAttribute && node.getAttribute('disabled') !== null) return '素材类型不可用';
+        if (node.getAttribute && node.getAttribute('aria-disabled') === 'true') return '素材类型不可用';
+        const disabledAncestor = node.closest && node.closest('[disabled],[aria-disabled="true"],.disabled,.is-disabled,[class*="Disabled"],[class*="disabled"]');
+        if (disabledAncestor && item.area && item.area.contains(disabledAncestor)) return '素材类型不可用';
+        const cls = String(node.className || '');
+        if (/(^|\s|_|-)(disabled|is-disabled|radio-disabled|mtd-radio-disabled|ant-radio-disabled)(\s|_|-|$)/i.test(cls)) return '素材类型不可用';
+        const style = window.getComputedStyle(node);
+        if (style.pointerEvents === 'none' || style.cursor === 'not-allowed') return '素材类型不可用';
+        if (Number(style.opacity) > 0 && Number(style.opacity) < 0.45) return '素材类型不可用';
+      }
+      return '';
+    };
+
+    const isDarkBackgroundV114 = (value) => {
+      const m = String(value || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/i);
+      if (!m) return false;
+      const r = Number(m[1]);
+      const g = Number(m[2]);
+      const b = Number(m[3]);
+      const a = m[4] === undefined ? 1 : Number(m[4]);
+      if (a < 0.65) return false;
+      return r < 90 && g < 90 && b < 90;
+    };
+
+    const visualSelectedV114 = (item) => {
+      if (!item || !item.radio || !item.radio.element) return false;
+      const radio = item.radio.element;
+      const radioRect = item.radio.rect || radio.getBoundingClientRect();
+      const nodes = [radio, ...allV114('*', radio)].filter((node) => DOM.isVisible(node));
+      for (const node of nodes.slice(0, 30)) {
+        const rect = node.getBoundingClientRect();
+        // 只认“内点”的深色背景，不认外圈 border，避免把未选中圆圈误判为选中。
+        if (rect.width > radioRect.width * 0.75 || rect.height > radioRect.height * 0.75) continue;
+        if (rect.width < 3 || rect.height < 3) continue;
+        const style = window.getComputedStyle(node);
+        if (isDarkBackgroundV114(style.backgroundColor)) return true;
+      }
+      for (const pseudo of ['::before', '::after']) {
+        const style = window.getComputedStyle(radio, pseudo);
+        if (style && isDarkBackgroundV114(style.backgroundColor)) return true;
+      }
+      return false;
+    };
+
+    const selectedByOwnStateV114 = (item) => {
+      if (!item) return false;
+      const radio = item.radio && item.radio.element;
+      const root = item.root;
+      const input = (root && root.querySelector && root.querySelector('input[type="radio"]')) || (radio && radio.matches && radio.matches('input[type="radio"]') ? radio : null);
+      if (input && input.checked === true) return true;
+      for (const node of [radio, root, item.labelNode].filter(Boolean)) {
+        if (node.getAttribute && node.getAttribute('aria-checked') === 'true') return true;
+      }
+      // 只看目标素材自己的短层级，不看大面积父容器，避免被其他选中项污染。
+      for (const node of [radio, radio && radio.parentElement, root].filter(Boolean)) {
+        const cls = String(node.className || '');
+        if (/(^|\s|_|-)(checked|is-checked|mtd-radio-checked|ant-radio-checked)(\s|_|-|$)/i.test(cls) && !/uncheck|unchecked/i.test(cls)) return true;
+      }
+      return visualSelectedV114(item);
+    };
+
+    const getActiveMaterialTypeV114 = (modal = getDrawerV114()) => {
+      if (!modal) return '';
+      for (const typeName of MATERIAL_TYPES_V114) {
+        if (typeName === '搜索密令') continue;
+        const item = findMaterialItemV114(typeName, modal);
+        if (selectedByOwnStateV114(item)) return typeName;
+      }
+      return '';
+    };
+
+    const materialContentSnapshotV114 = (modal = getDrawerV114()) => {
+      if (!modal) return '';
+      const values = [];
+      allV114('textarea,input,[contenteditable="true"],img', modal)
+        .filter((node) => DOM.isVisible(node) && !node.closest('#mtamc-panel'))
+        .forEach((node) => {
+          const tag = node.tagName ? node.tagName.toLowerCase() : '';
+          if (tag === 'img') {
+            const src = node.currentSrc || node.src || node.getAttribute('data-src') || '';
+            if (src) values.push(src);
+          } else {
+            const value = node.value || textV114(node);
+            if (value) values.push(value);
+          }
+        });
+      return values.join('\n').trim();
+    };
+
+    const clickMaterialItemV114 = async (item, reason) => {
+      const target = (item.radio && item.radio.element) || item.root || item.labelNode;
+      const rect = (item.radio && item.radio.rect) || target.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const point = document.elementFromPoint(x, y) || target;
+      const eventOptions = { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y };
+      Logger.info(`点击素材：${reason} x=${Math.round(x)}, y=${Math.round(y)}, 命中=${point.tagName} ${textV114(point).slice(0, 18)}`);
+      const targets = uniqueElements([point, target]).filter(Boolean);
+      targets.forEach((node) => {
+        if (window.PointerEvent) {
+          node.dispatchEvent(new PointerEvent('pointerdown', eventOptions));
+          node.dispatchEvent(new PointerEvent('pointerup', eventOptions));
+        }
+        node.dispatchEvent(new MouseEvent('mouseover', eventOptions));
+        node.dispatchEvent(new MouseEvent('mousedown', eventOptions));
+        node.dispatchEvent(new MouseEvent('mouseup', eventOptions));
+        node.dispatchEvent(new MouseEvent('click', eventOptions));
+        if (typeof node.click === 'function') {
+          try { node.click(); } catch (error) { /* ignore */ }
+        }
+      });
+      await DOM.sleep(CONFIG.materialFastSwitchDelay || 260);
+    };
+
+    const waitMaterialSelectedV114 = async (typeName, beforeSnapshot, timeout = 1100) => {
+      const start = Date.now();
+      let activeType = '';
+      let changed = false;
+      while (Date.now() - start < timeout) {
+        const modal = getDrawerV114();
+        if (!modal) return { modalClosed: true, activeType, changed };
+        const item = findMaterialItemV114(typeName, modal);
+        activeType = getActiveMaterialTypeV114(modal);
+        const snapshot = materialContentSnapshotV114(modal);
+        changed = Boolean(snapshot && snapshot !== beforeSnapshot);
+        if (selectedByOwnStateV114(item)) return { ok: true, activeType: typeName, changed, modalClosed: false };
+        // 某些组件选中态类不稳定，但内容真实刷新，可以视为切换成功；不能用空内容放行。
+        if (changed && snapshot.length > 8) return { ok: true, activeType: typeName, changed, modalClosed: false };
+        await DOM.sleep(120);
+      }
+      const modal = getDrawerV114();
+      activeType = modal ? getActiveMaterialTypeV114(modal) : '';
+      return { ok: false, modalClosed: !modal, activeType, changed };
+    };
+
+    PromotionModal.getActiveMaterialType = getActiveMaterialTypeV114;
+    PromotionModal.isMaterialTypeEnabled = function isMaterialTypeEnabledV114(typeName) {
+      const item = findMaterialItemV114(typeName, getDrawerV114());
+      return !hasDisabledV114(item);
+    };
+
+    PromotionModal.selectMaterialType = async function selectMaterialTypeV114(typeName) {
+      let modal = getDrawerV114() || PromotionModal.currentModal || (await PromotionModal.waitForPromotionModal());
+      if (!modal) throw new Error('推广面板未打开，无法选择素材');
+
+      const item = findMaterialItemV114(typeName, modal);
+      const disabledReason = hasDisabledV114(item);
+      if (disabledReason) {
+        Logger.info(`素材类型不可用，跳过：${typeName}（${disabledReason}）`);
+        return false;
+      }
+
+      if (selectedByOwnStateV114(item)) {
+        Logger.info(`已确认切换素材类型：${typeName}`);
+        return true;
+      }
+
+      const beforeSnapshot = materialContentSnapshotV114(modal);
+      await clickMaterialItemV114(item, `${typeName}/strict-radio`);
+      let result = await waitMaterialSelectedV114(typeName, beforeSnapshot, CONFIG.materialProbeVerifyTimeout || 1200);
+      if (result.modalClosed) throw new Error(`推广面板在点击「${typeName}」后意外关闭`);
+      if (result.ok) {
+        Logger.info(`已确认切换素材类型：${typeName}`);
+        return true;
+      }
+
+      // 只做一次轻量补点 label，不再 radio/label/text 多轮轰炸，防止不可用素材把抽屉点关闭。
+      if (item.root && item.root !== ((item.radio && item.radio.element) || item.labelNode)) {
+        await clickMaterialItemV114({ ...item, radio: null }, `${typeName}/strict-label`);
+        result = await waitMaterialSelectedV114(typeName, beforeSnapshot, 800);
+        if (result.modalClosed) throw new Error(`推广面板在点击「${typeName}」后意外关闭`);
+        if (result.ok) {
+          Logger.info(`已确认切换素材类型：${typeName}`);
+          return true;
+        }
+      }
+
+      Logger.info(`素材类型不可用，跳过：${typeName}（点击后未真实选中，当前选中：${result.activeType || getActiveMaterialTypeV114(getDrawerV114()) || '无'}）`);
+      return false;
+    };
+  }
+
+  applyMeituanCollectorV114Patch();
+
+
   function extractLinks(text) {
     const source = String(text || '');
     const patterns = [
@@ -5574,7 +6494,7 @@
   function init() {
     State.init();
     UI.createControlPanel();
-    Logger.info('脚本版本 V1.1.1 已加载，请在活动推广页点击「开始采集」');
+    Logger.info('脚本版本 V1.1.4 已加载，请在活动推广页点击「开始采集」');
     window.MeituanActivityMaterialCollector = {
       CONFIG,
       State,

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         淘宝闪购会场推广采集助手
 // @namespace    https://ganfanba.local/userscripts
-// @version      1.0.4
+// @version      1.0.5
 // @description  在淘宝闪购联盟「会场推广」页面批量采集会场活动及各推广链路文案，导出 CSV / JSON。
 // @author       Codex
 // @match        https://union.ele.me/*
@@ -12,7 +12,7 @@
 (function () {
   'use strict';
 
-  const VERSION = 'V1.0.4';
+  const VERSION = 'V1.0.5';
 
   const TARGET_HASH = '#/alliance-child-mine-promotion/activity-ele-promotion';
 
@@ -1223,10 +1223,26 @@
       });
     },
 
-    findLinkTypeButton(linkTypeName) {
+    getLinkTypeRoot() {
       const panel = DetailPage.getRightPanel();
       const anchor = DOM.findByText('推广链路', panel, false);
-      const root = anchor ? this.findLinkTypeGroup(anchor, panel) : panel;
+      return anchor ? this.findLinkTypeGroup(anchor, panel) : panel;
+    },
+
+    getVisibleConfiguredLinkButtons() {
+      const root = this.getLinkTypeRoot();
+      return CONFIG.linkTypes
+        .map((type) => ({ type, button: this.findLinkTypeButton(type, root) }))
+        .filter((item) => item.button && DOM.isVisible(item.button) && !DOM.isDisabled(item.button));
+    },
+
+    isOnlyVisibleLinkType(linkTypeName) {
+      const visibleButtons = this.getVisibleConfiguredLinkButtons();
+      return visibleButtons.length === 1 && visibleButtons[0].type === linkTypeName;
+    },
+
+    findLinkTypeButton(linkTypeName, rootOverride) {
+      const root = rootOverride || this.getLinkTypeRoot();
       const candidates = DOM.all('button,a,span,div,[role="button"]', root)
         .filter((element) => DOM.isVisible(element))
         .filter((element) => DOM.visibleText(element) === linkTypeName)
@@ -1245,6 +1261,11 @@
     },
 
     async selectLinkType(button, linkTypeName, snapshot) {
+      if (this.isOnlyVisibleLinkType(linkTypeName)) {
+        Logger.info(`${linkTypeName} 是当前唯一可用推广链路，直接按已选中处理`);
+        return true;
+      }
+
       for (let attempt = 1; attempt <= CONFIG.maxClickRetry; attempt += 1) {
         await DOM.clickElement(button, `推广链路 ${linkTypeName}`);
         await DOM.delay('linkSwitch');
