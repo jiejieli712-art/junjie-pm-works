@@ -19,6 +19,7 @@
 | 干饭吧 / Bitego | 从需求、原型、小程序页面到后台协同的完整产品闭环 | `09_Case_Studies/GanFanBa_Bitego/CASE_STUDY.md` |
 | 元来短剧平台 | 内容平台的跨端业务理解与后台运营逻辑 | `09_Case_Studies/YuanLai_Short_Drama/CASE_STUDY.md` |
 | 商家与菜品数据处理 | 面向业务决策的数据采集、清洗和结构化输出 | `09_Case_Studies/Merchant_Data_Infrastructure/CASE_STUDY.md` |
+| 数理宝典 | 面向中考数学复习的离线学习 App，从公式知识库到复习、闯关和本地持久化的完整闭环 | `09_Case_Studies/ShuLi_BaoDian/CASE_STUDY.md` |
 
 ## 补充材料
 
@@ -26,3 +27,4 @@
 | --- | --- | --- |
 | 干饭吧本地生活扩展 | 展示定位体系、外部平台承接、活动转化和测试验证能力 | `01_Product_Strategy/PRD/GanFanBa_Bitego/`、`07_Delivery_and_Evidence/Demo_Pages/GanFanBa_Local_Life/` |
 | BeautyGo | 展示从新业务 PRD 到 MVP 边界、Agent 协作和技术骨架的组织能力 | `01_Product_Strategy/PRD/BeautyGo/`、`04_System_Architecture/Product_Architecture/BeautyGo_Codebase_Overview.md` |
+| 数理宝典技术概览 | 展示低成本离线 App 的本地数据、状态持久化、跨端构建和页面入口组织能力 | `04_System_Architecture/Product_Architecture/ShuLi_BaoDian_Codebase_Overview.md` |
