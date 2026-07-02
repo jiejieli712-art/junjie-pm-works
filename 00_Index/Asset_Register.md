@@ -13,6 +13,12 @@
 | 截图 / 演示材料 | `07_Delivery_and_Evidence/` | 能证明阶段性交付、展示和归档能力 |
 | 脚本 / 工具 | `08_Scripts_and_Tools/` | 能证明通过技术手段提升执行效率 |
 
+## 已收录项目材料
+
+| 项目 | 材料 | 说明 |
+| --- | --- | --- |
+| 数理宝典 | `09_Case_Studies/ShuLi_BaoDian/CASE_STUDY.md`、`04_System_Architecture/Product_Architecture/ShuLi_BaoDian_Codebase_Overview.md` | 仅收录公开案例说明和代码架构概览，不包含依赖目录、构建产物、完整压缩包或敏感配置。 |
+
 ## 不应提交的内容
 
 - 完整原始压缩包
