@@ -22,6 +22,7 @@
 | 干饭吧 / Bitego | 用户在外卖、集体用餐和本地生活场景中经常面临选择困难、推荐不准和转化链路断裂的问题。 | 围绕趣味选餐、偏好推荐、多日预订、定位体系、本地生活扩展、活动转化页和后台协同，梳理产品逻辑并推动核心功能表达。 |
 | 元来短剧平台 | 短剧平台需要同时处理用户观看链路、内容运营、账号体系和后台管理等多端协同问题。 | 参与二开需求理解、跨端模块梳理、用户链路拆解、后台内容管理逻辑整理和项目交付材料沉淀。 |
 | 商家与菜品数据处理 | 餐饮产品决策需要结构化的商家和菜品数据，而不是分散的原始文件。 | 设计并执行数据采集、清洗、匹配、区域拆分和结构化输出流程，为后续产品与运营决策提供数据基础。 |
+| 数理宝典 | 中考数学复习中公式查找、记忆、使用和复盘割裂，学生缺少低成本、离线可用的学习闭环。 | 设计并落地 `uni-app` 离线学习 App，组织公式词典、闪卡复习、闯关玩法、全局搜索、收藏重点和本地持久化。 |
 
 
 
@@ -35,6 +36,7 @@
 | 活动转化与外部平台承接 | 美团转化落地页、订单返利功能、海报设计需求、上线 checklist、接口测试脚本。 | `01_Product_Strategy/PRD/GanFanBa_Bitego/`、`03_User_Experience/High_Fidelity_Prototypes/GanFanBa_Bitego/`、`07_Delivery_and_Evidence/Demo_Pages/GanFanBa_Meituan_Landing/` |
 | BeautyGo 补充案例 | 上门美妆平台 PRD、MVP 优化清单、Agent 协作框架、技术骨架。 | `01_Product_Strategy/PRD/BeautyGo/`、`04_System_Architecture/Product_Architecture/BeautyGo_Codebase_Overview.md` |
 | 联盟推广采集自动化 | 美团联盟活动推广、淘宝闪购会场推广等 Tampermonkey 采集助手脚本，用于辅助采集推广物料并导出结构化数据。 | `08_Scripts_and_Tools/Automation/Alliance_Promotion_Collectors/` |
+| 数理宝典学习 App | 面向江苏中考冲刺的离线数学公式学习工具，覆盖公式词典、闪卡复习、策略闯关、搜索和个人复习沉淀。 | `09_Case_Studies/ShuLi_BaoDian/CASE_STUDY.md`、`04_System_Architecture/Product_Architecture/ShuLi_BaoDian_Codebase_Overview.md` |
 
 
 
